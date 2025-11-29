@@ -1,3400 +1,1714 @@
-# 📋 План разработки AI-Cha Terminal - Базовая часть (без AI)
+# План разработки базовой части AI-Cha Terminal
 
-## 🎯 Цель этапа
+## 1. Описание этапа разработки
 
-Создать полнофункциональную базу терминальной системы со всем необходимым интерфейсом, системой заказов и инфраструктурой, **БЕЗ** интеграции AI-диалога и голосовых технологий. На этом этапе кнопка "Подобрать товар" будет временно неактивна или перенаправлять на обычное меню.
+### 1.1. Суть базового этапа
+Базовый этап разработки включает создание полнофункционального интерфейса терминала для чайного кафе AI-Cha без интеграции AI-агента и голосовых технологий. На данном этапе реализуется вся визуальная часть, навигация между экранами, каталог товаров, корзина, заглушки оплаты и система оценки сервиса.
 
-**Ожидаемый результат:** Полностью работающий терминал с красивым интерфейсом, каталогом товаров, корзиной, заглушками оплаты, системой оценки и панелями для сотрудников.
+### 1.2. Границы этапа
+**Включено:**
+- Приветственный экран с двуязычным интерфейсом
+- Экран выбора режима взаимодействия
+- Полный каталог товаров с фильтрацией и поиском
+- Корзина и управление заказом
+- Экран оплаты с заглушками
+- Система оценки сервиса
+- Интерфейс для сотрудников (управление заказами)
+- Главный экран отображения заказов
+- Backend API для управления данными
+- База данных для хранения товаров и заказов
 
-**Время выполнения:** 4-6 недель
+**Исключено (реализуется на следующих этапах):**
+- AI-диалог и подбор товаров
+- Распознавание речи (STT)
+- Синтез речи (TTS)
+- Интеграция с AI-моделями
+- Реальная оплата (только заглушки)
 
----
-
-## 📦 Фаза 1: Настройка окружения разработки
-
-### Задача 1.1: Установка базового ПО
-
-#### Шаги выполнения:
-
-1. **Установка Node.js**
-   - Скачать и установить Node.js 20 LTS с официального сайта
-   - Проверить установку: `node --version` и `npm --version`
-   - Должны быть версии: Node.js >= 20.0.0, npm >= 10.0.0
-
-2. **Установка Docker Desktop**
-   - Скачать Docker Desktop для Windows с официального сайта
-   - Установить и запустить Docker Desktop
-   - Убедиться, что Docker работает: `docker --version` и `docker-compose --version`
-   - Включить WSL 2 integration в настройках Docker (для лучшей производительности)
-
-3. **Установка Git**
-   - Скачать и установить Git для Windows
-   - Настроить глобальные параметры через команду git config:
-     - Установить имя пользователя глобально
-     - Установить email глобально
-
-4. **Установка редактора кода**
-   - Рекомендуется VS Code с расширениями:
-     - ESLint
-     - Prettier
-     - Docker
-     - React Developer Tools
-     - GitLens
-
-**✅ Критерий завершения:** Все инструменты установлены и проверены командами --version
+### 1.3. Целевой результат
+Полностью рабочий терминал с возможностью просмотра каталога, формирования заказа, "оплаты" и оценки сервиса. Терминал готов к интеграции AI-функционала на следующем этапе.
 
 ---
 
-### Задача 1.2: Создание структуры проекта
+## 2. Архитектура проекта
 
-#### Шаги выполнения:
+### 2.1. Структура папок и файлов
 
-1. **Инициализация Git репозитория**
-   - Перейти в директорию проекта
-   - Инициализировать Git репозиторий командой git init
-   - Переименовать основную ветку в main
+```
+AI-Cha/
+│
+├── docs/                                    # Документация проекта
+│   ├── About_project/
+│   ├── context/
+│   └── Examples/
+│
+├── backend/                                 # Серверная часть
+│   ├── src/
+│   │   ├── api/                            # API endpoints
+│   │   │   ├── routes/
+│   │   │   │   ├── products.js            # Маршруты для товаров
+│   │   │   │   ├── orders.js              # Маршруты для заказов
+│   │   │   │   ├── categories.js          # Маршруты для категорий
+│   │   │   │   └── ratings.js             # Маршруты для оценок
+│   │   │   ├── controllers/
+│   │   │   │   ├── productController.js   # Логика работы с товарами
+│   │   │   │   ├── orderController.js     # Логика работы с заказами
+│   │   │   │   ├── categoryController.js  # Логика категорий
+│   │   │   │   └── ratingController.js    # Логика оценок
+│   │   │   └── middleware/
+│   │   │       ├── validation.js          # Валидация запросов
+│   │   │       ├── errorHandler.js        # Обработка ошибок
+│   │   │       └── logger.js              # Логирование запросов
+│   │   │
+│   │   ├── database/                       # Работа с БД
+│   │   │   ├── models/
+│   │   │   │   ├── Product.js             # Модель товара
+│   │   │   │   ├── Category.js            # Модель категории
+│   │   │   │   ├── Order.js               # Модель заказа
+│   │   │   │   ├── OrderItem.js           # Модель позиции заказа
+│   │   │   │   └── Rating.js              # Модель оценки
+│   │   │   ├── migrations/                # Миграции БД
+│   │   │   └── seeds/                     # Начальные данные
+│   │   │       └── initial_products.js    # Загрузка товаров и категорий
+│   │   │
+│   │   ├── services/                       # Бизнес-логика
+│   │   │   ├── productService.js          # Сервис товаров
+│   │   │   ├── orderService.js            # Сервис заказов
+│   │   │   ├── categoryService.js         # Сервис категорий
+│   │   │   └── ratingService.js           # Сервис оценок
+│   │   │
+│   │   ├── utils/                          # Вспомогательные функции
+│   │   │   ├── validators.js              # Валидаторы данных
+│   │   │   ├── formatters.js              # Форматирование данных
+│   │   │   └── constants.js               # Константы приложения
+│   │   │
+│   │   ├── config/                         # Конфигурация
+│   │   │   ├── database.js                # Настройки БД
+│   │   │   ├── server.js                  # Настройки сервера
+│   │   │   └── categories.js              # Конфигурация категорий
+│   │   │
+│   │   └── app.js                          # Точка входа backend
+│   │
+│   ├── tests/                              # Тесты backend
+│   │   ├── unit/
+│   │   │   ├── productService.test.js
+│   │   │   └── orderService.test.js
+│   │   └── integration/
+│   │       └── api.test.js
+│   │
+│   ├── package.json
+│   ├── .env.example
+│   └── .env
+│
+├── frontend/                                # Клиентская часть
+│   ├── public/
+│   │   ├── images/                         # Изображения
+│   │   │   ├── products/                  # Фото товаров
+│   │   │   ├── animations/                # Lottie анимации
+│   │   │   └── logo/                      # Логотипы
+│   │   └── index.html
+│   │
+│   ├── src/
+│   │   ├── components/                     # React компоненты
+│   │   │   ├── common/                    # Общие компоненты
+│   │   │   │   ├── Button/
+│   │   │   │   │   ├── Button.tsx
+│   │   │   │   │   └── Button.styles.ts
+│   │   │   │   ├── Card/
+│   │   │   │   ├── Modal/
+│   │   │   │   └── Loading/
+│   │   │   │
+│   │   │   ├── screens/                   # Экраны приложения
+│   │   │   │   ├── WelcomeScreen/
+│   │   │   │   │   ├── WelcomeScreen.tsx
+│   │   │   │   │   └── WelcomeScreen.styles.ts
+│   │   │   │   ├── ModeSelectionScreen/
+│   │   │   │   ├── CatalogScreen/
+│   │   │   │   ├── RecommendationsScreen/
+│   │   │   │   ├── CartScreen/
+│   │   │   │   ├── PaymentScreen/
+│   │   │   │   └── RatingScreen/
+│   │   │   │
+│   │   │   ├── products/                  # Компоненты товаров
+│   │   │   │   ├── ProductCard/
+│   │   │   │   ├── ProductList/
+│   │   │   │   ├── ProductFilters/
+│   │   │   │   └── ProductSearch/
+│   │   │   │
+│   │   │   ├── cart/                      # Компоненты корзины
+│   │   │   │   ├── CartItem/
+│   │   │   │   ├── CartSummary/
+│   │   │   │   └── CartIcon/
+│   │   │   │
+│   │   │   └── animations/                # Анимационные компоненты
+│   │   │       ├── LottiePlayer/
+│   │   │       └── PageTransition/
+│   │   │
+│   │   ├── hooks/                          # Custom React hooks
+│   │   │   ├── useCart.ts                 # Логика корзины
+│   │   │   ├── useProducts.ts             # Логика товаров
+│   │   │   ├── useCategories.ts           # Логика категорий
+│   │   │   └── useScreenTimeout.ts        # Логика таймаута экрана
+│   │   │
+│   │   ├── store/                          # State management (Zustand)
+│   │   │   ├── cartStore.ts               # Store корзины
+│   │   │   ├── productsStore.ts           # Store товаров
+│   │   │   └── navigationStore.ts         # Store навигации
+│   │   │
+│   │   ├── services/                       # API сервисы
+│   │   │   ├── api.ts                     # Базовая конфигурация API
+│   │   │   ├── productService.ts          # Сервис товаров
+│   │   │   ├── orderService.ts            # Сервис заказов
+│   │   │   └── ratingService.ts           # Сервис оценок
+│   │   │
+│   │   ├── utils/                          # Утилиты
+│   │   │   ├── formatters.ts              # Форматирование (цены, текст)
+│   │   │   ├── validators.ts              # Валидация
+│   │   │   └── constants.ts               # Константы
+│   │   │
+│   │   ├── styles/                         # Глобальные стили
+│   │   │   ├── global.css                 # Глобальные стили
+│   │   │   ├── colors.ts                  # Цветовая палитра
+│   │   │   ├── typography.ts              # Типографика
+│   │   │   └── animations.ts              # Анимации
+│   │   │
+│   │   ├── types/                          # TypeScript типы
+│   │   │   ├── product.ts
+│   │   │   ├── order.ts
+│   │   │   └── category.ts
+│   │   │
+│   │   ├── App.tsx                         # Главный компонент
+│   │   ├── main.tsx                        # Точка входа
+│   │   └── Router.tsx                      # Роутинг
+│   │
+│   ├── package.json
+│   ├── tsconfig.json
+│   ├── vite.config.ts
+│   └── tailwind.config.js
+│
+├── staff-panel/                             # Панель для сотрудников
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── OrderList/                 # Список заказов
+│   │   │   ├── OrderCard/                 # Карточка заказа
+│   │   │   └── StatusButton/              # Кнопка изменения статуса
+│   │   ├── screens/
+│   │   │   └── StaffDashboard/            # Главный экран сотрудников
+│   │   └── main.tsx
+│   └── package.json
+│
+├── display-screen/                          # Экран отображения заказов
+│   ├── src/
+│   │   ├── components/
+│   │   │   ├── OrderDisplay/              # Отображение заказа
+│   │   │   └── StatusIndicator/           # Индикатор статуса
+│   │   └── main.tsx
+│   └── package.json
+│
+├── docker/                                  # Docker конфигурация
+│   ├── docker-compose.yml
+│   ├── Dockerfile.backend
+│   ├── Dockerfile.frontend
+│   └── nginx.conf
+│
+└── README.md
+```
 
-2. **Создание структуры папок проекта**
-   
-   Создать следующую иерархию папок:
-   
-   **Frontend (клиентская часть):**
-   - Папка `frontend/` для React приложения
-   - Внутри `src/` создать подпапки:
-     - `components/` - переиспользуемые компоненты (кнопки, карточки товаров)
-     - `pages/` - страницы приложения (главная, меню, корзина и т.д.)
-     - `styles/` - CSS стили
-     - `utils/` - вспомогательные функции
-     - `hooks/` - custom React hooks
-     - `context/` - React Context для управления состоянием
-     - `api/` - API клиенты для связи с backend
-     - `assets/` - изображения, анимации, шрифты
-   - Файлы: App.tsx (главный компонент), main.tsx (точка входа)
-   - Папка `public/` для статических файлов
-   - Конфигурационные файлы: package.json, vite.config.ts, tsconfig.json, index.html
+### 2.2. Обоснование архитектуры
 
-   **Backend (серверная часть):**
-   - Папка `backend/` с подпапкой `order-service/` (микросервис управления заказами)
-   - Внутри `order-service/src/` создать:
-     - `routes/` - API эндпоинты
-     - `models/` - модели базы данных
-     - `controllers/` - бизнес-логика
-     - `utils/` - утилиты
-     - `config/` - конфигурация
-   - Файл server.ts - точка входа сервера
-   - Конфигурационные файлы: Dockerfile, package.json, tsconfig.json
-   - Папка `shared/` для общего кода между сервисами
+**Монорепозиторий с разделением на модули:**
+- `backend/` - серверная часть на Node.js
+- `frontend/` - клиентская часть на React
+- `staff-panel/` - отдельное приложение для сотрудников
+- `display-screen/` - отдельное приложение для главного экрана
 
-   **База данных:**
-   - Папка `database/` с подпапками:
-     - `migrations/` - миграции PostgreSQL
-     - `seeds/` - начальные данные
-   - Файл schema.sql - схема базы данных
-
-   **Nginx:**
-   - Папка `nginx/` с файлами конфигурации
-
-   **Корневые файлы:**
-   - docker-compose.yml - для оркестрации всех сервисов
-   - .env.example - пример переменных окружения
-   - .gitignore - исключения для Git
-   - README.md - документация проекта
-
-3. **Создать файл .gitignore**
-   
-   Добавить в .gitignore следующие правила исключения:
-   - Папки зависимостей (node_modules)
-   - Результаты сборки (dist, build)
-   - Файлы окружения (.env, .env.local)
-   - Папки IDE (.vscode, .idea)
-   - Системные файлы (.DS_Store для Mac, Thumbs.db для Windows)
-   - Лог файлы (*.log, npm-debug.log)
-
-**✅ Критерий завершения:** Структура папок создана, репозиторий инициализирован
+**Преимущества:**
+- Четкое разделение ответственности
+- Независимая разработка компонентов
+- Возможность масштабирования каждой части
+- Переиспользование общих типов и утилит
 
 ---
 
-### Задача 1.3: Настройка PostgreSQL и создание базы данных
+## 3. Технологический стек
 
-> **⚠️ ТОЧКА ОСТАНОВКИ ДЛЯ ПОЛЬЗОВАТЕЛЯ:**
-> Вам нужно создать базу данных PostgreSQL. Есть два варианта:
-> 1. **Локально в Docker** (рекомендуется для тестирования) - мы настроим автоматически
-> 2. **Облачный сервис** (например, Supabase, Railway, или Neon) - нужно получить DATABASE_URL
-> 
-> **Если выбираете облако:** Зарегистрируйтесь на выбранной платформе, создайте базу и получите строку подключения (DATABASE_URL). Она выглядит так:
-> ```
-> postgresql://username:password@host:port/database_name
-> ```
-> Сохраните её, мы используем в следующем шаге.
->
-> **Если выбираете Docker:** Просто продолжайте, мы настроим автоматически.
+### 3.1. Frontend (клиентская часть терминала)
 
-#### Шаги выполнения (для Docker варианта):
+**Основные технологии:**
+- **React 18+** с TypeScript - для построения UI
+- **Vite** - быстрая сборка и разработка
+- **Zustand** - легковесный state management
+- **React Router** - навигация между экранами
+- **Tailwind CSS** - утилитарные стили
+- **Lottie React** - воспроизведение анимаций
+- **Axios** - HTTP запросы к API
 
-1. **Создать файл docker-compose.yml в корне проекта**
-   ```yaml
-   version: '3.8'
-   
-   services:
-     postgres:
-       image: postgres:15-alpine
-       container_name: aicha-postgres
-       environment:
-         POSTGRES_DB: aicha_terminal
-         POSTGRES_USER: aicha_user
-         POSTGRES_PASSWORD: aicha_password_dev_only
-       ports:
-         - "5432:5432"
-       volumes:
-         - postgres_data:/var/lib/postgresql/data
-         - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
-       networks:
-         - aicha-network
-   
-     redis:
-       image: redis:7-alpine
-       container_name: aicha-redis
-       ports:
-         - "6379:6379"
-       networks:
-         - aicha-network
-   
-   volumes:
-     postgres_data:
-   
-   networks:
-     aicha-network:
-       driver: bridge
-   ```
+**Дополнительные библиотеки:**
+- **react-hot-toast** - уведомления пользователю
+- **framer-motion** - плавные анимации и переходы
+- **date-fns** - работа с датами
 
-2. **Создать схему базы данных database/schema.sql**
-   ```sql
-   -- Таблица категорий товаров
-   CREATE TABLE categories (
-       id SERIAL PRIMARY KEY,
-       name_ru VARCHAR(100) NOT NULL,
-       name_zh VARCHAR(100) NOT NULL,
-       slug VARCHAR(50) UNIQUE NOT NULL,
-       created_at TIMESTAMP DEFAULT NOW()
-   );
-   
-   -- Таблица товаров
-   CREATE TABLE products (
-       id SERIAL PRIMARY KEY,
-       category_id INTEGER REFERENCES categories(id),
-       name_ru VARCHAR(200) NOT NULL,
-       name_zh VARCHAR(200) NOT NULL,
-       description_ru TEXT,
-       description_zh TEXT,
-       price DECIMAL(10, 2) NOT NULL,
-       image_url VARCHAR(500),
-       is_available BOOLEAN DEFAULT true,
-       created_at TIMESTAMP DEFAULT NOW(),
-       updated_at TIMESTAMP DEFAULT NOW()
-   );
-   
-   -- Таблица заказов
-   CREATE TABLE orders (
-       id SERIAL PRIMARY KEY,
-       order_number VARCHAR(20) UNIQUE NOT NULL,
-       total_amount DECIMAL(10, 2) NOT NULL,
-       status VARCHAR(50) DEFAULT 'pending', -- pending, preparing, ready, completed, cancelled
-       payment_method VARCHAR(50), -- card, aicha_card, sbp
-       payment_status VARCHAR(50) DEFAULT 'pending', -- pending, paid, failed
-       created_at TIMESTAMP DEFAULT NOW(),
-       updated_at TIMESTAMP DEFAULT NOW()
-   );
-   
-   -- Таблица позиций заказа
-   CREATE TABLE order_items (
-       id SERIAL PRIMARY KEY,
-       order_id INTEGER REFERENCES orders(id) ON DELETE CASCADE,
-       product_id INTEGER REFERENCES products(id),
-       quantity INTEGER NOT NULL DEFAULT 1,
-       price DECIMAL(10, 2) NOT NULL,
-       created_at TIMESTAMP DEFAULT NOW()
-   );
-   
-   -- Таблица оценок сервиса
-   CREATE TABLE ratings (
-       id SERIAL PRIMARY KEY,
-       order_id INTEGER REFERENCES orders(id),
-       rating INTEGER CHECK (rating >= 1 AND rating <= 10),
-       created_at TIMESTAMP DEFAULT NOW()
-   );
-   
-   -- Индексы для оптимизации
-   CREATE INDEX idx_orders_status ON orders(status);
-   CREATE INDEX idx_orders_created_at ON orders(created_at DESC);
-   CREATE INDEX idx_products_category ON products(category_id);
-   CREATE INDEX idx_products_available ON products(is_available);
-   ```
+### 3.2. Backend (серверная часть)
 
-3. **Создать файл с начальными данными database/seeds/initial_data.sql**
-   ```sql
-   -- Добавление категорий
-   INSERT INTO categories (name_ru, name_zh, slug) VALUES
-   ('Зелёный чай', '绿茶', 'green-tea'),
-   ('Черный чай', '红茶', 'black-tea'),
-   ('Улун', '乌龙茶', 'oolong-tea'),
-   ('Пуэр', '普洱茶', 'puer-tea'),
-   ('Кофейные напитки', '咖啡饮品', 'coffee'),
-   ('Холодные напитки', '冷饮', 'cold-drinks'),
-   ('Десерты', '甜点', 'desserts');
-   
-   -- Добавление примеров товаров (можно расширить позже)
-   INSERT INTO products (category_id, name_ru, name_zh, description_ru, description_zh, price, image_url) VALUES
-   (1, 'Зелёный чай Лунцзин', '龙井绿茶', 'Классический китайский зелёный чай высшего качества', '经典高品质中国绿茶', 350.00, '/images/longjing.jpg'),
-   (1, 'Билочунь', '碧螺春', 'Нежный зелёный чай с весенних плантаций', '春季嫩绿茶', 420.00, '/images/biluochun.jpg'),
-   (2, 'Дянь Хун', '滇红', 'Красный чай из провинции Юньнань', '云南红茶', 380.00, '/images/dianhong.jpg'),
-   (3, 'Те Гуань Инь', '铁观音', 'Популярный улун с богатым вкусом', '风味浓郁的乌龙茶', 450.00, '/images/tieguanyin.jpg'),
-   (4, 'Шу Пуэр 5 лет', '熟普洱5年', 'Выдержанный тёмный чай с глубоким вкусом', '陈年熟普洱', 500.00, '/images/shupuer.jpg'),
-   (5, 'Капучино', '卡布奇诺', 'Классический итальянский кофе', '经典意式咖啡', 280.00, '/images/cappuccino.jpg'),
-   (6, 'Холодный зелёный чай с жасмином', '茉莉冰绿茶', 'Освежающий холодный чай', '清爽冰茶', 250.00, '/images/cold-jasmine.jpg'),
-   (7, 'Моти с красной фасолью', '红豆麻薯', 'Традиционный японский десерт', '传统日式甜点', 180.00, '/images/mochi.jpg');
-   ```
+**Основные технологии:**
+- **Node.js 18+** - серверная платформа
+- **Fastify** - быстрый web-фреймворк
+- **PostgreSQL 15+** - реляционная база данных
+- **Sequelize** - ORM для работы с БД
+- **Redis** - для real-time обновлений и кэширования
 
-4. **Запустить базу данных**
+**Дополнительные библиотеки:**
+- **dotenv** - управление переменными окружения
+- **joi** - валидация данных
+- **pino** - структурированное логирование
+- **ws** - WebSocket для real-time обновлений
+
+### 3.3. DevOps
+
+**Контейнеризация:**
+- **Docker** - контейнеризация приложений
+- **Docker Compose** - оркестрация сервисов
+- **Nginx** - раздача статических файлов и reverse proxy
+
+---
+
+## 4. Архитектура базы данных
+
+### 4.1. Основные таблицы
+
+#### Таблица: **categories**
+Категории товаров в меню кафе
+- `id` (PK, UUID) - уникальный идентификатор
+- `name_ru` (VARCHAR) - название на русском
+- `name_zh` (VARCHAR) - название на китайском
+- `slug` (VARCHAR, UNIQUE) - URL-friendly идентификатор
+- `description_ru` (TEXT) - описание на русском
+- `description_zh` (TEXT) - описание на китайском
+- `display_order` (INTEGER) - порядок отображения
+- `icon_url` (VARCHAR) - URL иконки категории
+- `is_active` (BOOLEAN) - активна ли категория
+- `created_at` (TIMESTAMP)
+- `updated_at` (TIMESTAMP)
+
+**Примеры категорий:**
+- Чайные напитки (茶饮)
+- Кофейные напитки (咖啡饮品)
+- Холодные напитки (冷饮)
+- Десерты (甜点)
+- Чайные церемонии (茶道)
+
+#### Таблица: **products**
+Товары и напитки кафе
+- `id` (PK, UUID) - уникальный идентификатор
+- `category_id` (FK → categories.id) - категория товара
+- `name_ru` (VARCHAR) - название на русском
+- `name_zh` (VARCHAR) - название на китайском
+- `description_ru` (TEXT) - описание на русском
+- `description_zh` (TEXT) - описание на китайском
+- `price` (DECIMAL) - цена в рублях
+- `image_url` (VARCHAR) - URL изображения товара
+- `ingredients_ru` (TEXT) - состав на русском
+- `ingredients_zh` (TEXT) - состав на китайском
+- `temperature` (ENUM) - hot/cold/both - температура подачи
+- `is_available` (BOOLEAN) - доступен ли товар
+- `is_recommended` (BOOLEAN) - рекомендуется ли (для будущего AI)
+- `tags` (JSONB) - теги для фильтрации (сладкий, горький, крепкий и т.д.)
+- `display_order` (INTEGER) - порядок отображения
+- `created_at` (TIMESTAMP)
+- `updated_at` (TIMESTAMP)
+
+#### Таблица: **orders**
+Заказы клиентов
+- `id` (PK, UUID) - уникальный идентификатор заказа
+- `order_number` (INTEGER, UNIQUE) - номер заказа для отображения
+- `terminal_id` (VARCHAR) - идентификатор терминала
+- `status` (ENUM) - pending/paid/preparing/ready/completed/cancelled
+- `total_amount` (DECIMAL) - общая сумма заказа
+- `payment_method` (ENUM) - card/aicha_card/sbp
+- `payment_status` (ENUM) - pending/success/failed
+- `rating` (INTEGER) - оценка сервиса (1-10)
+- `created_at` (TIMESTAMP) - время создания заказа
+- `paid_at` (TIMESTAMP) - время оплаты
+- `completed_at` (TIMESTAMP) - время завершения
+- `session_id` (VARCHAR) - идентификатор сессии терминала
+
+#### Таблица: **order_items**
+Позиции в заказе
+- `id` (PK, UUID)
+- `order_id` (FK → orders.id)
+- `product_id` (FK → products.id)
+- `quantity` (INTEGER) - количество
+- `price_at_order` (DECIMAL) - цена на момент заказа
+- `product_name_ru` (VARCHAR) - название (копия для истории)
+- `product_name_zh` (VARCHAR)
+- `created_at` (TIMESTAMP)
+
+#### Таблица: **ratings**
+Оценки сервиса
+- `id` (PK, UUID)
+- `order_id` (FK → orders.id, UNIQUE)
+- `rating` (INTEGER) - оценка от 1 до 10
+- `terminal_id` (VARCHAR) - терминал, на котором оставлена оценка
+- `created_at` (TIMESTAMP)
+
+### 4.2. Индексы для оптимизации
+
+- `categories(slug)`
+- `categories(display_order, is_active)`
+- `products(category_id, is_available)`
+- `products(display_order)`
+- `orders(order_number)`
+- `orders(status, created_at)`
+- `orders(terminal_id, created_at)`
+- `order_items(order_id)`
+- `ratings(created_at)`
+
+---
+
+## 5. Пошаговый план разработки
+
+### Этап 1: Подготовка инфраструктуры (2-3 дня)
+
+#### 1.1. Инициализация проекта
+**Задача:** Создать структуру проекта и настроить окружение разработки
+
+**Действия:**
+- Создать структуру папок согласно разделу 2.1
+- Инициализировать Git репозиторий с .gitignore
+- Создать README.md с описанием проекта и инструкциями по запуску
+- Настроить EditorConfig для единообразия кода
+
+#### 1.2. Настройка Backend
+**Задача:** Подготовить серверную часть к разработке
+
+**Действия:**
+- Создать package.json с зависимостями (Fastify, Sequelize, PostgreSQL, Redis)
+- Настроить TypeScript или использовать чистый Node.js
+- Создать .env.example с необходимыми переменными окружения
+- Настроить структуру логирования (pino)
+- Создать базовую точку входа app.js с минимальным сервером
+
+**Переменные окружения:**
+- DATABASE_URL - строка подключения к PostgreSQL
+- REDIS_URL - строка подключения к Redis
+- PORT - порт сервера (по умолчанию 8080)
+- NODE_ENV - окружение (development/production)
+
+#### 1.3. Настройка Frontend
+**Задача:** Подготовить клиентскую часть к разработке
+
+**Действия:**
+- Инициализировать Vite проект с React и TypeScript
+- Установить зависимости (React Router, Zustand, Tailwind CSS, Lottie, Axios)
+- Настроить Tailwind CSS с кастомной конфигурацией цветов
+- Создать базовую структуру App.tsx и Router.tsx
+- Настроить proxy для API запросов в vite.config.ts
+
+#### 1.4. Настройка Docker
+**Задача:** Подготовить контейнеризацию для удобной разработки
+
+**Действия:**
+- Создать docker-compose.yml с сервисами: PostgreSQL, Redis, backend, frontend, nginx
+- Создать Dockerfile для backend и frontend
+- Настроить nginx.conf для раздачи frontend и проксирования API
+- Проверить запуск всех сервисов через docker-compose up
+
+#### 1.5. Настройка базы данных
+**Задача:** Инициализировать PostgreSQL и миграции
+
+**Действия:**
+- Установить и настроить Sequelize CLI
+- Создать конфигурацию подключения к БД
+- Настроить структуру миграций
+- Создать миграцию с таблицами согласно разделу 4.1
+
+---
+
+### Этап 2: Разработка моделей и API (3-4 дня)
+
+#### 2.1. Создание моделей данных
+**Задача:** Реализовать ORM модели для работы с БД
+
+**Модель Category (backend/src/database/models/Category.js):**
+- Определить поля согласно разделу 4.1
+- Настроить валидацию (name_ru и name_zh обязательны)
+- Добавить методы: getActive(), getBySlug()
+- Настроить связь с Product (hasMany)
+
+**Модель Product (backend/src/database/models/Product.js):**
+- Определить все поля включая JSONB для tags
+- Настроить валидацию (цена > 0, обязательные поля)
+- Добавить методы: getAvailable(), getByCategory(), searchByName()
+- Настроить связь с Category (belongsTo)
+
+**Модель Order (backend/src/database/models/Order.js):**
+- Определить поля со всеми статусами
+- Настроить автоинкремент для order_number
+- Добавить методы: updateStatus(), complete(), cancel()
+- Настроить связь с OrderItem (hasMany)
+
+**Модель OrderItem (backend/src/database/models/OrderItem.js):**
+- Определить поля с денормализацией названий
+- Добавить метод calculateSubtotal()
+- Настроить связи с Order и Product
+
+**Модель Rating (backend/src/database/models/Rating.js):**
+- Определить поля с ограничением rating от 1 до 10
+- Настроить уникальность order_id
+- Добавить метод getAverageRating()
+
+#### 2.2. Создание seed данных
+**Задача:** Заполнить БД начальными данными для разработки
+
+**Файл seeds/initial_products.js:**
+- Создать 5 категорий товаров
+- Для каждой категории создать 5-10 товаров
+- Указать реалистичные названия, описания, цены
+- Добавить теги для фильтрации (сладкий, горький, крепкий, легкий, фруктовый и т.д.)
+- Общее количество товаров: 30-40 для демонстрации
+
+**Примеры товаров:**
+- Зеленый чай "Лунцзин" (龙井茶) - 250 руб
+- Пуэр выдержанный (普洱茶) - 350 руб
+- Молочный улун (乌龙茶) - 280 руб
+- Матча латте (抹茶拿铁) - 320 руб
+
+#### 2.3. Разработка API endpoints
+**Задача:** Создать RESTful API для работы с данными
+
+**Routes для товаров (backend/src/api/routes/products.js):**
+- GET /api/products - получить все товары с фильтрами
+  - Query параметры: category, temperature, search, tags
+- GET /api/products/:id - получить конкретный товар
+- GET /api/products/recommended - получить рекомендуемые (заглушка для AI)
+
+**Routes для категорий (backend/src/api/routes/categories.js):**
+- GET /api/categories - получить все активные категории
+- GET /api/categories/:slug/products - получить товары категории
+
+**Routes для заказов (backend/src/api/routes/orders.js):**
+- POST /api/orders - создать новый заказ
+  - Body: { terminal_id, items: [{ product_id, quantity }] }
+- GET /api/orders/:id - получить заказ по ID
+- PATCH /api/orders/:id/status - обновить статус заказа
+  - Body: { status: 'preparing' | 'ready' | 'completed' }
+- POST /api/orders/:id/payment - "оплатить" заказ (заглушка)
+  - Body: { payment_method: 'card' | 'aicha_card' | 'sbp' }
+
+**Routes для оценок (backend/src/api/routes/ratings.js):**
+- POST /api/ratings - оставить оценку
+  - Body: { order_id, rating, terminal_id }
+- GET /api/ratings/average - получить среднюю оценку
+
+#### 2.4. Разработка контроллеров
+**Задача:** Реализовать бизнес-логику обработки запросов
+
+**ProductController (backend/src/api/controllers/productController.js):**
+- getAll() - получение товаров с фильтрацией и пагинацией
+- getById() - получение товара по ID с проверкой доступности
+- getRecommended() - получение рекомендуемых (пока просто случайные 6 товаров)
+
+**OrderController (backend/src/api/controllers/orderController.js):**
+- create() - создание заказа с валидацией товаров и расчетом суммы
+- getById() - получение заказа
+- updateStatus() - обновление статуса с WebSocket уведомлением
+- processPayment() - обработка "оплаты" (заглушка, всегда success)
+
+**RatingController (backend/src/api/controllers/ratingController.js):**
+- create() - сохранение оценки с проверкой существования заказа
+- getAverage() - расчет средней оценки за период
+
+#### 2.5. Разработка сервисного слоя
+**Задача:** Вынести бизнес-логику в отдельные сервисы
+
+**ProductService (backend/src/services/productService.js):**
+- Методы для работы с товарами
+- Логика фильтрации и поиска
+- Проверка доступности товара
+
+**OrderService (backend/src/services/orderService.js):**
+- Создание заказа с валидацией и расчетом
+- Обновление статусов
+- Логика работы с номерами заказов
+- Отправка WebSocket уведомлений при изменении статуса
+
+**CategoryService (backend/src/services/categoryService.js):**
+- Получение категорий с товарами
+- Кэширование категорий в Redis
+
+**RatingService (backend/src/services/ratingService.js):**
+- Сохранение оценок
+- Расчет статистики оценок
+
+#### 2.6. Middleware и валидация
+**Задача:** Создать общие middleware для обработки запросов
+
+**Validation middleware (backend/src/api/middleware/validation.js):**
+- validateCreateOrder() - валидация создания заказа
+- validatePayment() - валидация данных оплаты
+- validateRating() - валидация оценки (1-10)
+
+**Error handler (backend/src/api/middleware/errorHandler.js):**
+- Централизованная обработка ошибок
+- Форматирование ответов с ошибками
+- Логирование ошибок
+
+**Logger middleware (backend/src/api/middleware/logger.js):**
+- Логирование всех входящих запросов
+- Замер времени выполнения запросов
+
+---
+
+### Этап 3: Разработка дизайн-системы и UI компонентов (4-5 дней)
+
+**⚠️ Важно: Особенности дизайна для терминала**
+Прототип терминала использует экран 10.1" с разрешением 1024x600 пикселей. Все UI-элементы должны быть крупнее обычных веб-интерфейсов для комфортного использования на малом экране. Дизайн НЕ адаптивный - одинаковый вид на всех экранах. Указывайте размеры в относительных единицах (rem, em, %) для масштабируемости.
+
+#### 3.1. Настройка цветовой палитры и типографики
+**Задача:** Создать единую дизайн-систему согласно PRD
+
+**Файл colors.ts (frontend/src/styles/colors.ts):**
+- Определить основные цвета:
+  - primary: '#D32F2F' (китайский красный)
+  - gold: '#FFD700' (золотой для акцентов)
+  - green: '#388E3C' (чайная тематика)
+  - gray: '#757575' (второстепенные элементы)
+  - white: '#FFFFFF'
+  - black: '#212121'
+- Определить оттенки для hover, active состояний
+- Экспортировать палитру для использования в Tailwind
+
+**Файл typography.ts (frontend/src/styles/typography.ts):**
+- Определить размеры шрифтов увеличенные для малого экрана:
+  - Базовый текст: минимум 1.125rem (18px эквивалент)
+  - Заголовки: 1.75rem - 2.5rem
+  - Кнопки: минимум 1.25rem
+  - Мелкий текст (теги, подписи): минимум 0.875rem
+- Настроить веса шрифтов (regular, medium, bold)
+- Поддержка китайских символов (шрифт Noto Sans SC)
+
+**Конфигурация Tailwind (frontend/tailwind.config.js):**
+- Добавить кастомные цвета из colors.ts
+- Настроить размеры для сенсорного интерфейса
+- Добавить кастомные анимации
+
+#### 3.2. Создание базовых UI компонентов
+**Задача:** Разработать переиспользуемые компоненты
+
+**Компонент Button (frontend/src/components/common/Button/):**
+- Варианты: primary (красная), secondary (серая), outline
+- Размеры для сенсорного управления:
+  - small: минимум 3.5rem высота
+  - medium: 4rem высота
+  - large: 5rem высота
+- Состояния: default, hover, active, disabled
+- Поддержка иконок и загрузки
+- Минимальная область нажатия 3.5rem × 3.5rem для комфортного тача
+
+**Компонент Card (frontend/src/components/common/Card/):**
+- Карточка с тенью и скругленными углами
+- Варианты: default, elevated, outlined
+- Используется для товаров, заказов
+
+**Компонент Modal (frontend/src/components/common/Modal/):**
+- Модальное окно с backdrop
+- Анимация появления/исчезновения
+- Кнопка закрытия
+- Используется для подтверждений
+
+**Компонент Loading (frontend/src/components/common/Loading/):**
+- Индикатор загрузки с чайной тематикой
+- Fullscreen и inline варианты
+- Анимация вращения или Lottie анимация
+
+#### 3.3. Создание компонентов анимации
+**Задача:** Реализовать плавные переходы и анимации
+
+**Компонент LottiePlayer (frontend/src/components/animations/LottiePlayer/):**
+- Обертка для lottie-react
+- Автоматическое воспроизведение
+- Управление размером
+- Используется на экранах выбора режима и диалога
+
+**Компонент PageTransition (frontend/src/components/animations/PageTransition/):**
+- Плавные переходы между экранами
+- Анимации fade, slide
+- Используется в Router для всех переходов
+
+---
+
+### Этап 4: Разработка экранов терминала (7-10 дней)
+
+#### 4.1. Приветственный экран (WelcomeScreen)
+**Задача:** Реализовать стартовый экран с двуязычным приветствием
+
+**Компонент WelcomeScreen (frontend/src/components/screens/WelcomeScreen/):**
+
+**Визуальная структура:**
+- Полноэкранный фон с китайской тематикой (градиент или изображение)
+- Логотип AI-Cha по центру (крупный размер)
+- Текст приветствия двуязычный:
+  - "Добро пожаловать в AI Cha!" (русский, размер 48px)
+  - "欢迎来到爱茶!" (китайский, размер 42px)
+- Подсказка "Нажмите на экран для начала" внизу (fade in/out анимация)
+
+**Логика:**
+- При монтировании: плавное появление всех элементов
+- При касании любой области экрана: переход на экран выбора режима
+- Автопереход через 10 секунд без активности
+- Проверка соединения с сервером при загрузке
+
+**Анимации:**
+- Fade in логотипа (0.5s)
+- Slide up текста приветствия (0.7s)
+- Pulse анимация подсказки
+
+#### 4.2. Экран выбора режима (ModeSelectionScreen)
+**Задача:** Реализовать выбор между AI-подбором и обычным заказом
+
+**Компонент ModeSelectionScreen (frontend/src/components/screens/ModeSelectionScreen/):**
+
+**Визуальная структура:**
+- Центральная Lottie анимация (нейро-облако или чайная тематика)
+- Две кнопки под анимацией:
+  - **"Подобрать товар"** (主按钮):
+    - Ярко-красная (#D32F2F)
+    - Крупный размер (300x80px)
+    - Иконка AI/мозга слева от текста
+    - Двуязычный текст
+  - **"Обычный заказ"** (次按钮):
+    - Серая (#757575)
+    - Размер чуть меньше (280x70px)
+    - Иконка меню
+    - Двуязычный текст
+- Кнопки расположены вертикально с отступом 20px
+
+**Логика:**
+- При нажатии "Подобрать товар":
+  - Сохранить mode: 'ai' в store
+  - Показать заглушку "Функция AI-подбора будет доступна позже"
+  - Предложить перейти к обычному заказу
+- При нажатии "Обычный заказ":
+  - Сохранить mode: 'manual' в store
+  - Переход на экран каталога
+- Таймаут возврата на Welcome через 30 секунд без активности
+
+**Состояния:**
+- Hover эффекты для кнопок (увеличение scale: 1.05)
+- Active эффект (scale: 0.98)
+
+#### 4.3. Экран каталога товаров (CatalogScreen)
+**Задача:** Реализовать полный каталог с фильтрацией и поиском
+
+**Компонент CatalogScreen (frontend/src/components/screens/CatalogScreen/):**
+
+**Визуальная структура:**
+- **Шапка экрана (фиксированная):**
+  - Логотип AI-Cha слева (маленький)
+  - Поле поиска по центру (ширина 50%)
+  - Иконка корзины справа с badge количества товаров
+  - Высота 80px, фон белый с тенью
+
+- **Панель категорий (горизонтальный скролл):**
+  - Табы категорий (чайные, кофейные, холодные и т.д.)
+  - Активная категория подсвечена красным
+  - Иконка категории + название двуязычное
+  - Высота 60px
+
+- **Фильтры (опциональная панель):**
+  - Кнопка "Фильтры" открывает боковую панель
+  - Фильтры: температура (горячее/холодное), теги (сладкий, горький и т.д.)
+  - Применение фильтров обновляет список товаров
+
+- **Сетка товаров (скроллируемая область):**
+  - Сетка 2 колонки (оптимально для экрана 1024x600, товары крупные и хорошо видны)
+  - Карточки товаров с компонентом ProductCard
+  - Отступы между карточками 1rem
+  - Каждая карточка растянута на ~48% ширины контейнера
+
+- **Футер (фиксированный):**
+  - Кнопка "Перейти к оплате" (только если корзина не пуста)
+  - Сумма заказа
+  - Высота 80px
+
+**Компонент ProductCard (frontend/src/components/products/ProductCard/):**
+
+**Структура карточки товара:**
+- Изображение товара (квадрат, 100% ширины карточки)
+- Название двуязычное:
+  - Русский: 1.25rem, bold
+  - Китайский: 1rem
+- Краткое описание (1-2 строки, ellipsis, размер 0.875rem)
+- Цена (2rem шрифт, bold, контрастный)
+- Теги (badge 0.75rem: сладкий, холодный и т.д.)
+- Кнопка "+" крупная (минимум 3rem × 3rem) для добавления в корзину
+- Индикатор "Недоступно" если is_available = false
+
+**Логика карточки:**
+- При нажатии на карточку (не на кнопку "+") - открыть модальное окно с полной информацией
+- При нажатии на "+" - добавить товар в корзину с анимацией
+
+**Модальное окно товара (ProductModal):**
+- Полноразмерное изображение
+- Полное описание двуязычное
+- Состав (ingredients)
+- Цена
+- Кнопки: "-" (количество) "+" для управления количеством
+- Кнопка "Добавить в корзину"
+- Кнопка закрытия
+
+**Логика экрана:**
+- При монтировании: загрузка категорий и товаров через API
+- Поиск: debounce 300ms, поиск по name_ru и name_zh
+- Фильтрация: клиентская (данные уже загружены)
+- Добавление в корзину: анимация товара летящего в иконку корзины
+- Кнопка корзины: открывает CartScreen
+- Таймаут возврата на Welcome через 60 секунд без активности
+
+#### 4.4. Экран корзины (CartScreen)
+**Задача:** Реализовать управление заказом
+
+**Компонент CartScreen (frontend/src/components/screens/CartScreen/):**
+
+**Визуальная структура:**
+- **Шапка:**
+  - Заголовок "Ваш заказ" / "您的订单"
+  - Кнопка "Назад к каталогу"
+  - Кнопка "Очистить корзину" (справа)
+
+- **Список товаров в корзине:**
+  - Компоненты CartItem для каждого товара
+  - Скроллируемая область
+
+- **Итоговая панель (фиксированная внизу):**
+  - Строка "Итого:" с суммой заказа
+  - Строка "Количество товаров:" с числом
+  - Кнопка "Оплатить" (крупная, красная, на всю ширину)
+
+**Компонент CartItem (frontend/src/components/cart/CartItem/):**
+
+**Структура элемента корзины:**
+- Миниатюра товара (4rem × 4rem)
+- Название двуязычное (1.125rem)
+- Цена за единицу (1.25rem)
+- Управление количеством:
+  - Кнопка "-" (3rem × 3rem, минимум 1)
+  - Число (1.5rem, крупный шрифт)
+  - Кнопка "+" (3rem × 3rem)
+- Кнопка удаления (иконка 2.5rem)
+- Промежуточная сумма (1.5rem bold)
+
+**Логика:**
+- Изменение количества: обновление store с анимацией
+- Удаление товара: анимация slide out
+- Пустая корзина: показать заглушку "Корзина пуста" с кнопкой "Перейти к каталогу"
+- Кнопка "Оплатить": переход на PaymentScreen
+- Таймаут возврата на Welcome через 60 секунд без активности
+
+#### 4.5. Экран оплаты (PaymentScreen)
+**Задача:** Реализовать выбор способа оплаты (заглушки)
+
+**Компонент PaymentScreen (frontend/src/components/screens/PaymentScreen/):**
+
+**Визуальная структура:**
+- **Шапка:**
+  - Заголовок "Оплата заказа" / "支付订单"
+  - Кнопка "Назад"
+
+- **Информация о заказе:**
+  - Номер заказа (генерируется при создании)
+  - Список товаров (компактный)
+  - Итоговая сумма (крупный шрифт)
+
+- **Способы оплаты (3 крупные кнопки для сенсорного управления):**
+  - **"Банковская карта"** (银行卡):
+    - Иконка карты (2.5rem)
+    - Текст двуязычный (1.5rem)
+    - Размер 100% ширины × минимум 6rem высота
+  
+  - **"AI Cha карта"** (AI Cha卡):
+    - Иконка фирменной карты (2.5rem)
+    - Текст двуязычный (1.5rem)
+    - Размер 100% ширины × минимум 6rem высота
+  
+  - **"Оплата по СБП"** (快速支付系统):
+    - Иконка QR кода (2.5rem)
+    - Текст двуязычный (1.5rem)
+    - Размер 100% ширины × минимум 6rem высота
+
+**Логика:**
+- При монтировании: создать заказ через API (POST /api/orders)
+  - Получить order_id и order_number
+  - Сохранить в локальном state
+- При нажатии на любой способ оплаты:
+  - Показать loading 2 секунды
+  - Вызвать API (POST /api/orders/:id/payment) - всегда возвращает success
+  - Показать экран успешной оплаты с анимацией (галочка)
+  - Через 3 секунды переход на RatingScreen
+- При ошибке: показать модальное окно с ошибкой и возможностью повтора
+
+#### 4.6. Экран оценки сервиса (RatingScreen)
+**Задача:** Реализовать сбор обратной связи
+
+**Компонент RatingScreen (frontend/src/components/screens/RatingScreen/):**
+
+**Визуальная структура:**
+- **Заголовок:**
+  - "Как вы оцените процесс заказа в AI Cha?"
+  - "您如何评价AI Cha的订购流程?"
+  - Размер 2rem, по центру
+
+- **Звезды оценки:**
+  - 10 звезд в ряд (крупные для сенсорного управления, 3.5rem × 3.5rem каждая)
+  - Интерактивные: при наведении/нажатии подсвечиваются
+  - Градиент цвета: от красного (1-3) через желтый (4-7) к зеленому (8-10)
+  - Анимация при выборе
+  - Отступы между звездами 0.5rem
+
+- **Кнопки:**
+  - Кнопка "Пропустить" внизу (серая, outline, высота 4rem)
+
+**Логика:**
+- При нажатии на звезду:
+  - Анимация выбора
+  - Отправка оценки через API (POST /api/ratings)
+  - Показать сообщение "Спасибо за оценку!" / "感谢您的评价!"
+  - Через 2 секунды переход на WelcomeScreen
+- При нажатии "Пропустить":
+  - Сразу переход на WelcomeScreen
+- Автопереход через 60 секунд без активности
+- Очистка корзины после завершения
+
+#### 4.7. Экран рекомендаций (RecommendationsScreen)
+**Задача:** Подготовить заглушку для будущего AI-функционала
+
+**Компонент RecommendationsScreen (frontend/src/components/screens/RecommendationsScreen/):**
+
+**Визуальная структура:**
+- Заголовок "Рекомендации для вас" / "为您推荐"
+- Список рекомендованных товаров (заглушка: случайные 6 товаров)
+- Для каждого товара:
+  - ProductCard стандартный
+  - Дополнительно: короткое обоснование (заглушка: "Подходит вашему настроению")
+- Кнопка внизу "Добавить другие товары" - переход на CatalogScreen
+
+**Логика:**
+- Пока AI не реализован - загрузка случайных товаров через API
+- В будущем: получение персонализированных рекомендаций
+- Возможность добавления товаров в корзину
+- Переход к полному каталогу
+
+---
+
+### Этап 5: Разработка State Management (2-3 дня)
+
+#### 5.1. Store корзины (cartStore)
+**Задача:** Управление состоянием корзины
+
+**Файл frontend/src/store/cartStore.ts:**
+
+**Структура state:**
+- items: массив { product, quantity }
+- totalAmount: общая сумма
+- totalItems: общее количество товаров
+
+**Методы:**
+- addItem(product, quantity) - добавить товар
+- removeItem(productId) - удалить товар
+- updateQuantity(productId, quantity) - обновить количество
+- clearCart() - очистить корзину
+- getItemCount() - получить количество товаров
+
+**Особенности:**
+- Сохранение в localStorage для восстановления при перезагрузке
+- Автоматический пересчет totalAmount и totalItems
+- Проверка доступности товара перед добавлением
+
+#### 5.2. Store товаров (productsStore)
+**Задача:** Управление данными о товарах и категориях
+
+**Файл frontend/src/store/productsStore.ts:**
+
+**Структура state:**
+- products: массив всех товаров
+- categories: массив категорий
+- loading: флаг загрузки
+- error: ошибка загрузки
+- filters: активные фильтры
+- searchQuery: поисковый запрос
+
+**Методы:**
+- loadProducts() - загрузка товаров с API
+- loadCategories() - загрузка категорий
+- setFilter(filterType, value) - установка фильтра
+- setSearchQuery(query) - установка поискового запроса
+- getFilteredProducts() - получение отфильтрованных товаров
+
+**Особенности:**
+- Кэширование товаров (не перезагружать при каждом переходе)
+- Клиентская фильтрация для быстрого отклика
+
+#### 5.3. Store навигации (navigationStore)
+**Задача:** Управление состоянием навигации и таймаутами
+
+**Файл frontend/src/store/navigationStore.ts:**
+
+**Структура state:**
+- currentScreen: текущий экран
+- previousScreen: предыдущий экран
+- inactivityTimeout: таймаут до возврата на Welcome
+- orderMode: 'ai' | 'manual'
+
+**Методы:**
+- navigate(screen) - переход на экран
+- goBack() - возврат назад
+- resetInactivityTimeout() - сброс таймаута
+- setOrderMode(mode) - установка режима заказа
+
+**Особенности:**
+- Автоматический возврат на WelcomeScreen при неактивности
+- История навигации для кнопки "Назад"
+
+---
+
+### Этап 6: Интеграция Frontend с Backend (3-4 дня)
+
+#### 6.1. Настройка API клиента
+**Задача:** Создать централизованный клиент для API запросов
+
+**Файл frontend/src/services/api.ts:**
+
+**Конфигурация:**
+- Базовый URL: `http://localhost:8080/api` (из env)
+- Timeout: 10 секунд
+- Headers: Content-Type: application/json
+- Interceptors для обработки ошибок
+
+**Обработка ошибок:**
+- Network errors: показать уведомление "Проблемы с подключением"
+- 500 errors: показать "Ошибка сервера"
+- Retry логика для GET запросов (3 попытки)
+
+#### 6.2. Сервис товаров
+**Задача:** API методы для работы с товарами
+
+**Файл frontend/src/services/productService.ts:**
+
+**Методы:**
+- getProducts(filters) - получение товаров с фильтрами
+- getProductById(id) - получение товара
+- getCategories() - получение категорий
+- getRecommended() - получение рекомендованных
+
+**Использование:**
+- В productsStore для загрузки данных
+- Автоматическое обновление store при успешном ответе
+
+#### 6.3. Сервис заказов
+**Задача:** API методы для работы с заказами
+
+**Файл frontend/src/services/orderService.ts:**
+
+**Методы:**
+- createOrder(terminalId, items) - создание заказа
+- processPayment(orderId, paymentMethod) - "оплата" заказа
+- getOrder(orderId) - получение заказа
+
+**Использование:**
+- В PaymentScreen для создания и оплаты заказа
+- Обработка ошибок создания заказа
+
+#### 6.4. Сервис оценок
+**Задача:** API методы для оценок
+
+**Файл frontend/src/services/ratingService.ts:**
+
+**Методы:**
+- submitRating(orderId, rating, terminalId) - отправка оценки
+
+**Использование:**
+- В RatingScreen при выборе звезды
+
+#### 6.5. Тестирование интеграции
+**Задача:** Проверить работу всех API запросов
+
+**Сценарии тестирования:**
+- Загрузка категорий и товаров при старте
+- Фильтрация товаров
+- Добавление товаров в корзину
+- Создание заказа
+- Оплата заказа (заглушка)
+- Отправка оценки
+- Обработка ошибок сети
+
+---
+
+### Этап 7: Разработка панели для сотрудников (3-4 дня)
+
+#### 7.1. Структура панели сотрудников
+**Задача:** Создать интерфейс управления заказами
+
+**Приложение staff-panel (отдельное React приложение):**
+
+**Структура:**
+- Используется общий backend API
+- Отдельный роутинг и сборка
+- Адрес: `http://server/staff`
+
+#### 7.2. Главный экран (StaffDashboard)
+**Задача:** Отображение активных заказов
+
+**Компонент StaffDashboard (staff-panel/src/screens/StaffDashboard/):**
+
+**Визуальная структура:**
+- **Шапка:**
+  - Логотип AI-Cha
+  - Заголовок "Панель сотрудников"
+  - Текущее время
+  - Кнопка обновления
+
+- **Фильтры статусов:**
+  - Табы: "Новые", "Готовятся", "Готовые", "Все"
+  - Счетчик заказов в каждом статусе
+
+- **Список заказов (сетка 2-3 колонки):**
+  - Компоненты OrderCard для каждого заказа
+  - Сортировка: новые сверху
+  - Обновление в real-time через WebSocket
+
+**Компонент OrderCard (staff-panel/src/components/OrderCard/):**
+
+**Структура карточки заказа:**
+- Номер заказа (крупно)
+- Статус (цветной badge)
+- Время создания
+- Список товаров (компактно)
+- Общая сумма
+- Кнопки управления статусом:
+  - "Принять" (pending → preparing)
+  - "Готово" (preparing → ready)
+  - "Выдано" (ready → completed)
+- Цветовая кодировка:
+  - Новый (pending) - желтый border
+  - Готовится (preparing) - синий border
+  - Готов (ready) - зеленый border
+
+**Логика:**
+- При монтировании: загрузка всех активных заказов (не completed, не cancelled)
+- WebSocket подписка на обновления заказов
+- При изменении статуса: API запрос PATCH /api/orders/:id/status
+- Звуковое уведомление при новом заказе
+- Автообновление списка каждые 30 секунд (fallback для WebSocket)
+
+#### 7.3. WebSocket интеграция
+**Задача:** Real-time обновления заказов
+
+**Backend WebSocket (backend/src/services/orderService.js):**
+- При создании заказа: broadcast события 'new_order'
+- При обновлении статуса: broadcast события 'order_updated'
+- Клиенты подписываются на события
+
+**Frontend WebSocket (staff-panel):**
+- Подключение при монтировании StaffDashboard
+- Обработка событий new_order и order_updated
+- Автоматическое обновление списка заказов
+- Переподключение при разрыве соединения
+
+---
+
+### Этап 8: Разработка экрана отображения заказов (2-3 дня)
+
+#### 8.1. Структура display-screen
+**Задача:** Создать большой экран для зала с готовыми заказами
+
+**Приложение display-screen (отдельное React приложение):**
+
+**Структура:**
+- Fullscreen режим
+- Адрес: `http://server/display`
+- Подключение через WebSocket
+
+#### 8.2. Главный экран (DisplayScreen)
+**Задача:** Отображение готовых заказов для клиентов
+
+**Компонент DisplayScreen (display-screen/src/screens/DisplayScreen/):**
+
+**Визуальная структура:**
+- **Шапка:**
+  - Логотип AI-Cha по центру
+  - Заголовок "Готовые заказы" / "准备好的订单"
+
+- **Сетка заказов (3-4 колонки):**
+  - Крупные карточки с номерами заказов
+  - Отображаются только заказы со статусом 'ready'
+  - Анимация появления новых заказов
+  - Автоматическое удаление при смене статуса на 'completed'
+
+**Компонент OrderDisplay (display-screen/src/components/OrderDisplay/):**
+
+**Структура карточки:**
+- Номер заказа (очень крупный шрифт, 72px)
+- Статус "Готов" с зеленым индикатором
+- Анимация пульсации для привлечения внимания
+
+**Логика:**
+- WebSocket подписка на события order_updated
+- Фильтрация только заказов со статусом 'ready'
+- Звуковой сигнал при появлении готового заказа
+- Анимация fade out при выдаче заказа (completed)
+- Автоочистка старых заказов (> 10 минут в статусе ready)
+
+---
+
+### Этап 9: Оптимизация и полировка (3-4 дня)
+
+#### 9.1. Оптимизация производительности
+**Задача:** Улучшить скорость работы приложения
+
+**Frontend оптимизации:**
+- Lazy loading для компонентов экранов
+- Мемоизация компонентов (React.memo)
+- Оптимизация ре-рендеров в Zustand stores
+- Compression изображений товаров (WebP формат)
+- Code splitting по роутам
+- Service Worker для кэширования статики
+
+**Backend оптимизации:**
+- Индексы в БД (уже созданы на этапе 4)
+- Кэширование категорий в Redis (TTL 1 час)
+- Кэширование списка товаров в Redis (TTL 10 минут)
+- Connection pooling для PostgreSQL
+- Compression для API ответов (gzip)
+
+#### 9.2. Адаптивность и отзывчивость
+**Задача:** Обеспечить работу на разных размерах экранов
+
+**Тестирование на разных разрешениях:**
+- 1280x800 (основной экран терминала)
+- 1920x1080 (экран отображения заказов)
+- Портретная и ландшафтная ориентация
+
+**Адаптации:**
+- Media queries для разных размеров
+- Масштабирование шрифтов и элементов
+- Изменение сетки товаров (2-4 колонки в зависимости от ширины)
+
+#### 9.3. Доступность
+**Задача:** Улучшить доступность интерфейса
+
+**Улучшения:**
+- Высокий контраст текста и фона
+- Минимальный размер интерактивных элементов 60x60px
+- Aria-labels для всех кнопок
+- Focus visible для клавиатурной навигации
+- Поддержка screen readers (если необходимо)
+
+#### 9.4. Обработка ошибок и edge cases
+**Задача:** Покрыть все возможные сценарии ошибок
+
+**Сценарии:**
+- Отсутствие соединения с сервером: показать экран "Нет соединения"
+- Ошибка загрузки товаров: показать кнопку "Повторить"
+- Товар стал недоступен после добавления в корзину: уведомление и удаление
+- Ошибка создания заказа: уведомление с возможностью повтора
+- Пустая корзина на экране оплаты: редирект на каталог
+- Долгая загрузка: показывать Loading индикатор
+
+#### 9.5. Полировка анимаций
+**Задача:** Сделать все переходы плавными
+
+**Анимации:**
+- Переходы между экранами (fade + slide)
+- Добавление товара в корзину (flying animation)
+- Обновление количества в корзине (bounce)
+- Появление модальных окон (scale + fade)
+- Hover эффекты на кнопках и карточках
+- Loading состояния с skeleton screens
+
+---
+
+### Этап 10: Тестирование (4-5 дней)
+
+#### 10.1. Unit тесты Backend
+**Задача:** Покрыть тестами бизнес-логику
+
+**Файлы тестов (backend/tests/unit/):**
+
+**productService.test.js:**
+- Тест фильтрации товаров по категории
+- Тест поиска товаров
+- Тест проверки доступности
+
+**orderService.test.js:**
+- Тест создания заказа
+- Тест расчета суммы заказа
+- Тест обновления статуса
+- Тест валидации товаров
+
+**Инструменты:**
+- Jest для тестирования
+- Supertest для тестирования API
+- Mock данных для БД
+
+#### 10.2. Integration тесты API
+**Задача:** Проверить все API endpoints
+
+**Файл backend/tests/integration/api.test.js:**
+
+**Тесты endpoints:**
+- GET /api/categories - получение категорий
+- GET /api/products - получение товаров с фильтрами
+- GET /api/products/:id - получение товара
+- POST /api/orders - создание заказа
+- PATCH /api/orders/:id/status - обновление статуса
+- POST /api/orders/:id/payment - оплата заказа
+- POST /api/ratings - отправка оценки
+
+**Проверки:**
+- Статус коды ответов
+- Структура данных в ответе
+- Валидация входных данных
+- Обработка ошибок
+
+#### 10.3. E2E тесты Frontend
+**Задача:** Протестировать полные сценарии пользователя
+
+**Инструменты:**
+- Playwright или Cypress
+
+**Сценарии:**
+- **Сценарий 1: Обычный заказ**
+  1. Открыть приложение
+  2. Пройти Welcome screen
+  3. Выбрать "Обычный заказ"
+  4. Просмотреть каталог
+  5. Добавить 3 товара в корзину
+  6. Перейти к оплате
+  7. Выбрать способ оплаты
+  8. Оставить оценку
+  9. Вернуться на Welcome
+
+- **Сценарий 2: Поиск и фильтрация**
+  1. Перейти в каталог
+  2. Использовать поиск
+  3. Применить фильтры
+  4. Добавить товар в корзину
+
+- **Сценарий 3: Управление корзиной**
+  1. Добавить товары
+  2. Изменить количество
+  3. Удалить товар
+  4. Очистить корзину
+
+#### 10.4. Ручное тестирование
+**Задача:** Проверить UX и поведение на реальном устройстве
+
+**Чек-лист:**
+- Работа на сенсорном экране (тачскрин)
+- Читаемость текста на расстоянии
+- Размеры кнопок удобны для нажатия
+- Плавность анимаций
+- Скорость загрузки экранов
+- Работа WebSocket обновлений
+- Корректность двуязычных надписей
+- Таймауты неактивности работают
+
+#### 10.5. Тестирование панели сотрудников
+**Задача:** Проверить функционал для сотрудников
+
+**Сценарии:**
+- Просмотр новых заказов
+- Обновление статусов заказов
+- Real-time обновления
+- Отображение на display-screen
+- Работа при большом количестве заказов
+
+---
+
+### Этап 11: Развертывание и документация (3-4 дня)
+
+#### 11.1. Подготовка Docker образов
+**Задача:** Создать production-ready образы
+
+**Dockerfile для Backend (docker/Dockerfile.backend):**
+- Базовый образ: node:18-alpine
+- Установка зависимостей
+- Копирование кода
+- Запуск через node (не nodemon)
+- Healthcheck endpoint
+
+**Dockerfile для Frontend (docker/Dockerfile.frontend):**
+- Multi-stage build
+- Stage 1: сборка с Vite
+- Stage 2: раздача через nginx
+- Оптимизация размера образа
+
+**Docker Compose (docker/docker-compose.yml):**
+
+**Сервисы:**
+- postgres (PostgreSQL 15)
+- redis (Redis 7)
+- backend (Node.js API)
+- frontend (Nginx с React)
+- staff-panel (Nginx с React)
+- display-screen (Nginx с React)
+- nginx (главный reverse proxy)
+
+**Volumes:**
+- postgres_data - данные БД
+- redis_data - данные Redis
+
+**Networks:**
+- internal - для внутренней связи сервисов
+- external - для внешнего доступа
+
+#### 11.2. Настройка Nginx
+**Задача:** Настроить роутинг и раздачу приложений
+
+**Конфигурация nginx (docker/nginx.conf):**
+
+**Роуты:**
+- `/` → frontend (главный терминал)
+- `/staff` → staff-panel (панель сотрудников)
+- `/display` → display-screen (экран отображения)
+- `/api` → backend (проксирование API)
+- `/ws` → backend WebSocket
+
+**Настройки:**
+- Gzip compression
+- Кэширование статики (1 год для неизменяемых файлов)
+- Timeouts для WebSocket соединений
+- CORS headers для API
+
+#### 11.3. Переменные окружения
+**Задача:** Настроить конфигурацию для production
+
+**Файл .env.example (для документации):**
+
+**Backend:**
+- NODE_ENV=production
+- PORT=8080
+- DATABASE_URL=postgresql://user:password@postgres:5432/aicha
+- REDIS_URL=redis://redis:6379
+- LOG_LEVEL=info
+
+**Frontend:**
+- VITE_API_URL=http://server-ip:8080/api
+- VITE_WS_URL=ws://server-ip:8080/ws
+
+#### 11.4. Миграции и seed данных
+**Задача:** Подготовить БД к первому запуску
+
+**Скрипт инициализации (backend/scripts/init-db.js):**
+- Запуск миграций
+- Загрузка seed данных (категории и товары)
+- Проверка успешности
+
+**Содержимое seed:**
+- 5 категорий товаров
+- 40 товаров с реалистичными данными
+- Изображения товаров (плейсхолдеры или реальные фото)
+
+#### 11.5. Инструкция по развертыванию
+**Задача:** Написать подробную документацию
+
+**Файл DEPLOYMENT.md:**
+
+**Содержание:**
+1. Требования к серверу (мощный ПК)
+   - CPU: 4+ ядра
+   - RAM: 16GB
+   - Disk: 100GB SSD
+   - OS: Ubuntu 22.04
+
+2. Установка Docker и Docker Compose
+
+3. Клонирование репозитория
+
+4. Настройка .env файлов
+
+5. Запуск через Docker Compose:
    ```bash
-   docker-compose up -d postgres redis
+   docker-compose up -d
    ```
 
-5. **Проверить подключение**
+6. Инициализация БД:
    ```bash
-   docker exec -it aicha-postgres psql -U aicha_user -d aicha_terminal -c "\dt"
-   ```
-   Должны отобразиться созданные таблицы.
-
-6. **Загрузить начальные данные**
-   ```bash
-   docker exec -i aicha-postgres psql -U aicha_user -d aicha_terminal < database/seeds/initial_data.sql
+   docker-compose exec backend npm run db:init
    ```
 
-**✅ Критерий завершения:** База данных создана, таблицы и начальные данные загружены
+7. Проверка работоспособности:
+   - Frontend: http://server-ip/
+   - Staff panel: http://server-ip/staff
+   - Display screen: http://server-ip/display
+
+8. Настройка терминалов Orange Pi:
+   - Установка Chromium
+   - Настройка kiosk-режима
+   - Автозапуск через systemd
+
+#### 11.6. Документация для разработчиков
+**Задача:** Описать архитектуру и API
+
+**Файл README.md:**
+
+**Содержание:**
+- Описание проекта
+- Архитектура (ссылка на схему)
+- Технологический стек
+- Структура проекта
+- Инструкции по локальной разработке
+- Запуск тестов
+- Contributing guidelines
+
+**Файл API.md:**
+
+**Содержание:**
+- Список всех endpoints
+- Формат запросов и ответов
+- Примеры использования
+- Коды ошибок
 
 ---
 
-## 🎨 Фаза 2: Разработка Frontend (клиентская часть)
+### Этап 12: Финальная проверка и оптимизация (2-3 дня)
 
-### Задача 2.1: Инициализация React проекта
+#### 12.1. Проверка производительности
+**Задача:** Измерить и оптимизировать критичные метрики
 
-#### Шаги выполнения:
+**Метрики Frontend:**
+- Time to Interactive < 2 секунды
+- First Contentful Paint < 1 секунда
+- Плавность анимаций (60 FPS)
+- Размер bundle < 500KB (gzipped)
 
-1. **Создать React приложение с Vite**
-   ```bash
-   npm create vite@latest frontend -- --template react-ts
-   cd frontend
-   npm install
-   ```
+**Метрики Backend:**
+- Время ответа API < 200ms (P95)
+- Throughput > 100 req/sec
+- Время запросов к БД < 50ms
 
-2. **Установить необходимые зависимости**
-   ```bash
-   # Основные библиотеки
-   npm install react-router-dom
-   
-   # Для работы с API
-   npm install axios
-   
-   # Для WebSocket (real-time обновления)
-   npm install socket.io-client
-   
-   # Для анимаций
-   npm install lottie-react
-   
-   # Для иконок
-   npm install lucide-react
-   
-   # Для работы с формами (если понадобится)
-   npm install react-hook-form
-   
-   # Dev зависимости
-   npm install -D @types/node
-   ```
+**Инструменты:**
+- Lighthouse для Frontend
+- Artillery для нагрузочного тестирования Backend
 
-3. **Настроить Vite конфигурацию (vite.config.ts)**
-   ```typescript
-   import { defineConfig } from 'vite'
-   import react from '@vitejs/plugin-react'
-   import path from 'path'
-   
-   export default defineConfig({
-     plugins: [react()],
-     resolve: {
-       alias: {
-         '@': path.resolve(__dirname, './src'),
-       },
-     },
-     server: {
-       port: 3000,
-       proxy: {
-         '/api': {
-           target: 'http://localhost:8080',
-           changeOrigin: true,
-         },
-       },
-     },
-   })
-   ```
+#### 12.2. Проверка безопасности
+**Задача:** Обеспечить базовую безопасность
 
-4. **Настроить TypeScript (tsconfig.json)**
-   ```json
-   {
-     "compilerOptions": {
-       "target": "ES2020",
-       "useDefineForClassFields": true,
-       "lib": ["ES2020", "DOM", "DOM.Iterable"],
-       "module": "ESNext",
-       "skipLibCheck": true,
-       "moduleResolution": "bundler",
-       "allowImportingTsExtensions": true,
-       "resolveJsonModule": true,
-       "isolatedModules": true,
-       "noEmit": true,
-       "jsx": "react-jsx",
-       "strict": true,
-       "noUnusedLocals": true,
-       "noUnusedParameters": true,
-       "noFallthroughCasesInSwitch": true,
-       "baseUrl": ".",
-       "paths": {
-         "@/*": ["./src/*"]
-       }
-     },
-     "include": ["src"],
-     "references": [{ "path": "./tsconfig.node.json" }]
-   }
-   ```
+**Чек-лист:**
+- Валидация всех входных данных
+- Защита от SQL injection (через ORM)
+- Rate limiting на API endpoints
+- HTTPS в production (через nginx)
+- Безопасное хранение переменных окружения
+- Защита от XSS (React делает автоматически)
 
-**✅ Критерий завершения:** Проект инициализирован, зависимости установлены, можно запустить `npm run dev`
+#### 12.3. Мониторинг и логирование
+**Задача:** Настроить базовый мониторинг
+
+**Логирование Backend:**
+- Структурированные логи (JSON формат)
+- Уровни: error, warn, info, debug
+- Логирование всех API запросов
+- Логирование ошибок БД
+
+**Мониторинг (базовый):**
+- Docker logs для быстрой диагностики
+- Healthcheck endpoints для проверки статуса
+- В будущем: Prometheus + Grafana
+
+#### 12.4. Финальное тестирование на целевом железе
+**Задача:** Проверить работу на Orange Pi и настоящем экране
+
+**Тестирование:**
+- Установка на Orange Pi Zero 3
+- Подключение сенсорного экрана
+- Запуск в kiosk-режиме
+- Проверка производительности
+- Проверка работы микрофона (для будущего AI)
+- Проверка отклика сенсорного ввода
+
+**Оптимизации для Orange Pi:**
+- Уменьшение качества анимаций при необходимости
+- Оптимизация памяти
+- Preloading критичных ресурсов
+
+#### 12.5. Подготовка демо-данных
+**Задача:** Создать красивые данные для демонстрации
+
+**Демо-данные:**
+- Фотографии товаров высокого качества
+- Переводы на китайский от носителя языка
+- Реалистичные описания товаров
+- Правильные цены (исследование рынка)
 
 ---
 
-### Задача 2.2: Создание дизайн-системы и глобальных стилей
+## 6. Критерии приемки базового этапа
 
-#### Шаги выполнения:
+### 6.1. Функциональные требования
 
-1. **Создать файл глобальных CSS переменных src/styles/variables.css**
-   ```css
-   :root {
-     /* Цветовая палитра из PRD */
-     --color-primary-red: #D32F2F;
-     --color-primary-gold: #FFD700;
-     --color-primary-green: #388E3C;
-     --color-secondary-gray: #757575;
-     --color-bg-white: #FFFFFF;
-     --color-text-black: #212121;
-     
-     /* Градиенты */
-     --gradient-chinese: linear-gradient(135deg, #D32F2F 0%, #FF6F00 100%);
-     --gradient-tea: linear-gradient(135deg, #388E3C 0%, #66BB6A 100%);
-     
-     /* Тени */
-     --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.1);
-     --shadow-md: 0 4px 8px rgba(0, 0, 0, 0.15);
-     --shadow-lg: 0 8px 16px rgba(0, 0, 0, 0.2);
-     
-     /* Размеры шрифтов */
-     --font-size-xs: 14px;
-     --font-size-sm: 16px;
-     --font-size-md: 20px;
-     --font-size-lg: 24px;
-     --font-size-xl: 32px;
-     --font-size-xxl: 48px;
-     
-     /* Отступы */
-     --spacing-xs: 8px;
-     --spacing-sm: 16px;
-     --spacing-md: 24px;
-     --spacing-lg: 32px;
-     --spacing-xl: 48px;
-     
-     /* Скругления углов */
-     --radius-sm: 8px;
-     --radius-md: 12px;
-     --radius-lg: 16px;
-     
-     /* Transitions */
-     --transition-fast: 150ms ease;
-     --transition-normal: 300ms ease;
-     --transition-slow: 500ms ease;
-   }
-   ```
+**Обязательные функции:**
+- ✅ Приветственный экран с двуязычным интерфейсом работает
+- ✅ Экран выбора режима отображается корректно
+- ✅ Полный каталог товаров загружается и отображается
+- ✅ Фильтрация и поиск товаров работают
+- ✅ Добавление товаров в корзину работает с анимацией
+- ✅ Корзина отображает товары и позволяет управлять количеством
+- ✅ Создание заказа работает
+- ✅ Экран оплаты с заглушками работает
+- ✅ Система оценки сервиса работает
+- ✅ Автоматический возврат на Welcome экран при неактивности
+- ✅ Панель сотрудников отображает заказы
+- ✅ Обновление статусов заказов работает
+- ✅ Экран отображения заказов работает
+- ✅ Real-time обновления через WebSocket работают
 
-2. **Создать файл глобальных стилей src/styles/global.css**
-   ```css
-   @import './variables.css';
-   
-   /* Сброс стилей и базовые настройки */
-   * {
-     margin: 0;
-     padding: 0;
-     box-sizing: border-box;
-   }
-   
-   html, body {
-     width: 100%;
-     height: 100%;
-     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans SC', 'Microsoft YaHei', sans-serif;
-     -webkit-font-smoothing: antialiased;
-     -moz-osx-font-smoothing: grayscale;
-   }
-   
-   body {
-     background: var(--color-bg-white);
-     color: var(--color-text-black);
-     font-size: var(--font-size-sm);
-     overflow: hidden; /* Для kiosk режима */
-   }
-   
-   #root {
-     width: 100%;
-     height: 100%;
-   }
-   
-   /* Стили для кнопок */
-   button {
-     font-family: inherit;
-     cursor: pointer;
-     border: none;
-     outline: none;
-     transition: all var(--transition-normal);
-   }
-   
-   button:active {
-     transform: scale(0.95);
-   }
-   
-   /* Для сенсорных экранов - увеличенные области клика */
-   @media (pointer: coarse) {
-     button {
-       min-height: 60px;
-       min-width: 60px;
-       padding: var(--spacing-sm) var(--spacing-md);
-     }
-   }
-   ```
+### 6.2. Технические требования
 
-3. **Создать компонент Button src/components/Button/Button.tsx**
-   ```typescript
-   import React from 'react';
-   import './Button.css';
-   
-   interface ButtonProps {
-     children: React.ReactNode;
-     variant?: 'primary' | 'secondary' | 'ghost';
-     size?: 'small' | 'medium' | 'large';
-     fullWidth?: boolean;
-     onClick?: () => void;
-     disabled?: boolean;
-     className?: string;
-   }
-   
-   export const Button: React.FC<ButtonProps> = ({
-     children,
-     variant = 'primary',
-     size = 'medium',
-     fullWidth = false,
-     onClick,
-     disabled = false,
-     className = '',
-   }) => {
-     const classes = [
-       'button',
-       `button--${variant}`,
-       `button--${size}`,
-       fullWidth ? 'button--full-width' : '',
-       className,
-     ].filter(Boolean).join(' ');
-   
-     return (
-       <button className={classes} onClick={onClick} disabled={disabled}>
-         {children}
-       </button>
-     );
-   };
-   ```
+**Backend:**
+- ✅ API отвечает быстро (< 200ms)
+- ✅ База данных работает стабильно
+- ✅ Миграции применяются корректно
+- ✅ Seed данные загружаются
+- ✅ WebSocket соединения работают
+- ✅ Логирование настроено
 
-4. **Создать стили для кнопки src/components/Button/Button.css**
-   ```css
-   .button {
-     display: inline-flex;
-     align-items: center;
-     justify-content: center;
-     border-radius: var(--radius-md);
-     font-weight: 600;
-     transition: all var(--transition-normal);
-     box-shadow: var(--shadow-sm);
-   }
-   
-   .button:hover:not(:disabled) {
-     box-shadow: var(--shadow-md);
-     transform: translateY(-2px);
-   }
-   
-   .button:active:not(:disabled) {
-     transform: translateY(0) scale(0.95);
-   }
-   
-   .button:disabled {
-     opacity: 0.5;
-     cursor: not-allowed;
-   }
-   
-   /* Варианты */
-   .button--primary {
-     background: var(--gradient-chinese);
-     color: white;
-   }
-   
-   .button--secondary {
-     background: var(--color-secondary-gray);
-     color: white;
-   }
-   
-   .button--ghost {
-     background: transparent;
-     border: 2px solid var(--color-primary-red);
-     color: var(--color-primary-red);
-     box-shadow: none;
-   }
-   
-   /* Размеры */
-   .button--small {
-     padding: var(--spacing-xs) var(--spacing-sm);
-     font-size: var(--font-size-xs);
-   }
-   
-   .button--medium {
-     padding: var(--spacing-sm) var(--spacing-md);
-     font-size: var(--font-size-sm);
-   }
-   
-   .button--large {
-     padding: var(--spacing-md) var(--spacing-lg);
-     font-size: var(--font-size-md);
-     min-height: 70px;
-   }
-   
-   .button--full-width {
-     width: 100%;
-   }
-   ```
+**Frontend:**
+- ✅ Приложение загружается быстро (< 2s)
+- ✅ Анимации плавные (60 FPS)
+- ✅ Нет ошибок в консоли
+- ✅ Корректная работа на сенсорном экране
+- ✅ Двуязычность реализована везде
+- ✅ Адаптивность под разные экраны
 
-**✅ Критерий завершения:** Дизайн-система настроена, компоненты Button готовы к использованию
+### 6.3. UX требования
+
+**Интерфейс:**
+- ✅ Все кнопки достаточно большие (минимум 60x60px)
+- ✅ Текст читается легко (минимум 16px)
+- ✅ Высокий контраст для читаемости
+- ✅ Понятная навигация
+- ✅ Быстрый отклик на действия пользователя
+
+**Дизайн:**
+- ✅ Соответствие цветовой палитре (китайский красный, золотой, зеленый)
+- ✅ Китайская тематика в дизайне
+- ✅ Качественные изображения товаров
+- ✅ Плавные переходы между экранами
 
 ---
 
-### Задача 2.3: Создание макета приложения и роутинга
+## 7. Потенциальные проблемы и решения
 
-#### Шаги выполнения:
+### 7.1. Производительность на Orange Pi
+**Проблема:** Orange Pi Zero 3 имеет ограниченные ресурсы (4GB RAM, ARM процессор)
 
-1. **Создать структуру страниц в src/pages/**
-   ```
-   src/pages/
-   ├── WelcomePage/
-   │   ├── WelcomePage.tsx
-   │   └── WelcomePage.css
-   ├── ModeSelectorPage/
-   │   ├── ModeSelectorPage.tsx
-   │   └── ModeSelectorPage.css
-   ├── MenuPage/
-   │   ├── MenuPage.tsx
-   │   └── MenuPage.css
-   ├── CartPage/
-   │   ├── CartPage.tsx
-   │   └── CartPage.css
-   ├── PaymentPage/
-   │   ├── PaymentPage.tsx
-   │   └── PaymentPage.css
-   ├── RatingPage/
-   │   ├── RatingPage.tsx
-   │   └── RatingPage.css
-   └── StaffPanel/
-       ├── StaffPanel.tsx
-       └── StaffPanel.css
-   ```
+**Решения:**
+- Оптимизация bundle size Frontend
+- Использование Service Worker для кэширования
+- Lazy loading компонентов
+- Оптимизация изображений (WebP, compression)
+- Вся тяжелая логика на сервере (архитектура тонкого клиента)
 
-2. **Создать App.tsx с роутингом**
-   ```typescript
-   import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
-   import { WelcomePage } from './pages/WelcomePage/WelcomePage';
-   import { ModeSelectorPage } from './pages/ModeSelectorPage/ModeSelectorPage';
-   import { MenuPage } from './pages/MenuPage/MenuPage';
-   import { CartPage } from './pages/CartPage/CartPage';
-   import { PaymentPage } from './pages/PaymentPage/PaymentPage';
-   import { RatingPage } from './pages/RatingPage/RatingPage';
-   import { StaffPanel } from './pages/StaffPanel/StaffPanel';
-   import './styles/global.css';
-   
-   function App() {
-     return (
-       <BrowserRouter>
-         <Routes>
-           {/* Клиентские маршруты */}
-           <Route path="/" element={<WelcomePage />} />
-           <Route path="/mode" element={<ModeSelectorPage />} />
-           <Route path="/menu" element={<MenuPage />} />
-           <Route path="/cart" element={<CartPage />} />
-           <Route path="/payment" element={<PaymentPage />} />
-           <Route path="/rating" element={<RatingPage />} />
-           
-           {/* Панель сотрудников */}
-           <Route path="/staff" element={<StaffPanel />} />
-           
-           {/* Redirect неизвестных путей */}
-           <Route path="*" element={<Navigate to="/" replace />} />
-         </Routes>
-       </BrowserRouter>
-     );
-   }
-   
-   export default App;
-   ```
+### 7.2. Работа сенсорного экрана
+**Проблема:** Могут быть проблемы с распознаванием тачей
 
-3. **Создать Context для корзины src/context/CartContext.tsx**
-   ```typescript
-   import React, { createContext, useContext, useState, ReactNode } from 'react';
-   
-   interface Product {
-     id: number;
-     name_ru: string;
-     name_zh: string;
-     price: number;
-     image_url?: string;
-   }
-   
-   interface CartItem extends Product {
-     quantity: number;
-   }
-   
-   interface CartContextType {
-     items: CartItem[];
-     addItem: (product: Product) => void;
-     removeItem: (productId: number) => void;
-     updateQuantity: (productId: number, quantity: number) => void;
-     clearCart: () => void;
-     totalAmount: number;
-     itemCount: number;
-   }
-   
-   const CartContext = createContext<CartContextType | undefined>(undefined);
-   
-   export const CartProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-     const [items, setItems] = useState<CartItem[]>([]);
-   
-     const addItem = (product: Product) => {
-       setItems((prev) => {
-         const existingItem = prev.find((item) => item.id === product.id);
-         if (existingItem) {
-           return prev.map((item) =>
-             item.id === product.id
-               ? { ...item, quantity: item.quantity + 1 }
-               : item
-           );
-         }
-         return [...prev, { ...product, quantity: 1 }];
-       });
-     };
-   
-     const removeItem = (productId: number) => {
-       setItems((prev) => prev.filter((item) => item.id !== productId));
-     };
-   
-     const updateQuantity = (productId: number, quantity: number) => {
-       if (quantity <= 0) {
-         removeItem(productId);
-         return;
-       }
-       setItems((prev) =>
-         prev.map((item) =>
-           item.id === productId ? { ...item, quantity } : item
-         )
-       );
-     };
-   
-     const clearCart = () => {
-       setItems([]);
-     };
-   
-     const totalAmount = items.reduce(
-       (sum, item) => sum + item.price * item.quantity,
-       0
-     );
-   
-     const itemCount = items.reduce((sum, item) => sum + item.quantity, 0);
-   
-     return (
-       <CartContext.Provider
-         value={{
-           items,
-           addItem,
-           removeItem,
-           updateQuantity,
-           clearCart,
-           totalAmount,
-           itemCount,
-         }}
-       >
-         {children}
-       </CartContext.Provider>
-     );
-   };
-   
-   export const useCart = () => {
-     const context = useContext(CartContext);
-     if (!context) {
-       throw new Error('useCart must be used within CartProvider');
-     }
-     return context;
-   };
-   ```
+**Решения:**
+- Увеличенные зоны касания (минимум 60px)
+- Отключение двойного тапа для зума
+- Debounce для предотвращения случайных двойных нажатий
+- Тестирование на реальном экране
 
-4. **Обернуть приложение в Provider в main.tsx**
-   ```typescript
-   import React from 'react'
-   import ReactDOM from 'react-dom/client'
-   import App from './App.tsx'
-   import { CartProvider } from './context/CartContext'
-   
-   ReactDOM.createRoot(document.getElementById('root')!).render(
-     <React.StrictMode>
-       <CartProvider>
-         <App />
-       </CartProvider>
-     </React.StrictMode>,
-   )
-   ```
+### 7.3. Проблемы с сетью
+**Проблема:** WiFi может быть нестабильным
 
-**✅ Критерий завершения:** Роутинг настроен, Context для корзины работает
+**Решения:**
+- Retry логика для API запросов
+- Показ понятных сообщений об ошибках
+- Сохранение корзины в localStorage
+- Возможность восстановления сессии
+
+### 7.4. Синхронизация между терминалами
+**Проблема:** Товар может стать недоступным пока клиент формирует заказ
+
+**Решения:**
+- Проверка доступности при создании заказа
+- WebSocket уведомления об изменении доступности
+- Автоматическое удаление недоступных товаров из корзины
+
+### 7.5. Большое количество заказов
+**Проблема:** При большом потоке клиентов может быть сложно управлять заказами
+
+**Решения:**
+- Пагинация в панели сотрудников
+- Фильтрация по статусам
+- Автоматическая архивация старых заказов
+- Звуковые уведомления для новых заказов
 
 ---
 
-### Задача 2.4: Разработка приветственного экрана (WelcomePage)
+## 8. Метрики успеха
 
-#### Шаги выполнения:
+### 8.1. Технические метрики
+- Время загрузки приложения < 2 секунд
+- Время ответа API < 200ms
+- Uptime системы > 99%
+- Плавность анимаций 60 FPS
+- Отсутствие критических ошибок
 
-1. **Создать страницу WelcomePage.tsx**
-   ```typescript
-   import { useNavigate } from 'react-router-dom';
-   import { useEffect } from 'react';
-   import './WelcomePage.css';
-   
-   export const WelcomePage = () => {
-     const navigate = useNavigate();
-   
-     // Автоматический переход через 10 секунд
-     useEffect(() => {
-       const timeout = setTimeout(() => {
-         navigate('/mode');
-       }, 10000);
-   
-       return () => clearTimeout(timeout);
-     }, [navigate]);
-   
-     const handleTouch = () => {
-       navigate('/mode');
-     };
-   
-     return (
-       <div className="welcome-page" onClick={handleTouch}>
-         <div className="welcome-content">
-           <img 
-             src="/images/logo.png" 
-             alt="AI-Cha Logo" 
-             className="welcome-logo"
-           />
-           <h1 className="welcome-title-ru">Добро пожаловать в AI Cha!</h1>
-           <h2 className="welcome-title-zh">欢迎来到爱茶!</h2>
-           <p className="welcome-hint">Коснитесь экрана для начала</p>
-         </div>
-       </div>
-     );
-   };
-   ```
+### 8.2. Пользовательские метрики
+- Время от старта до оплаты < 3 минут
+- Интуитивная навигация (пользователь не застревает)
+- Читаемость на расстоянии 50-70 см
+- Корректная работа двуязычного интерфейса
 
-2. **Создать стили WelcomePage.css**
-   ```css
-   .welcome-page {
-     width: 100%;
-     height: 100vh;
-     background: var(--gradient-chinese);
-     display: flex;
-     align-items: center;
-     justify-content: center;
-     cursor: pointer;
-     position: relative;
-     overflow: hidden;
-   }
-   
-   /* Анимированный фон с китайскими мотивами */
-   .welcome-page::before {
-     content: '';
-     position: absolute;
-     top: -50%;
-     left: -50%;
-     width: 200%;
-     height: 200%;
-     background: 
-       radial-gradient(circle, rgba(255, 215, 0, 0.1) 1%, transparent 1%),
-       radial-gradient(circle, rgba(255, 215, 0, 0.1) 1%, transparent 1%);
-     background-size: 80px 80px;
-     background-position: 0 0, 40px 40px;
-     animation: float 20s linear infinite;
-   }
-   
-   @keyframes float {
-     0% {
-       transform: translate(0, 0);
-     }
-     100% {
-       transform: translate(40px, 40px);
-     }
-   }
-   
-   .welcome-content {
-     position: relative;
-     z-index: 1;
-     text-align: center;
-     animation: fadeInUp 1s ease-out;
-   }
-   
-   @keyframes fadeInUp {
-     from {
-       opacity: 0;
-       transform: translateY(30px);
-     }
-     to {
-       opacity: 1;
-       transform: translateY(0);
-     }
-   }
-   
-   .welcome-logo {
-     width: 200px;
-     height: auto;
-     margin-bottom: var(--spacing-xl);
-     animation: pulse 2s ease-in-out infinite;
-   }
-   
-   @keyframes pulse {
-     0%, 100% {
-       transform: scale(1);
-     }
-     50% {
-       transform: scale(1.05);
-     }
-   }
-   
-   .welcome-title-ru {
-     font-size: var(--font-size-xxl);
-     font-weight: 700;
-     color: white;
-     margin-bottom: var(--spacing-sm);
-     text-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-   }
-   
-   .welcome-title-zh {
-     font-size: var(--font-size-xl);
-     font-weight: 600;
-     color: rgba(255, 255, 255, 0.9);
-     margin-bottom: var(--spacing-xl);
-     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-   }
-   
-   .welcome-hint {
-     font-size: var(--font-size-md);
-     color: rgba(255, 255, 255, 0.7);
-     animation: blink 2s ease-in-out infinite;
-   }
-   
-   @keyframes blink {
-     0%, 100% {
-       opacity: 0.7;
-     }
-     50% {
-       opacity: 1;
-     }
-   }
-   ```
-
-> **⚠️ ПРИМЕЧАНИЕ:** Вам нужно добавить логотип AI-Cha в папку `public/images/logo.png`
-
-**✅ Критерий завершения:** Приветственный экран работает с автопереходом и по касанию
+### 8.3. Бизнес-метрики
+- Количество заказов через терминал
+- Средний чек
+- Средняя оценка сервиса
+- Время обработки заказа сотрудниками
 
 ---
 
-### Задача 2.5: Разработка экрана выбора режима (ModeSelectorPage)
+## 9. Следующие шаги
 
-#### Шаги выполнения:
+После завершения базового этапа разработки, проект будет готов к:
 
-1. **Создать анимацию для центра экрана**
-   - Скачать или создать lottie-анимацию для нейро-облака/чайной темы
-   - Сохранить JSON анимации в `src/assets/animations/tea-cloud.json`
-   - Альтернатива: можно использовать готовые анимации с https://lottiefiles.com/
+1. **Интеграции AI-агента** (следующий этап разработки)
+   - Подключение Speech-to-Text (Yandex SpeechKit)
+   - Подключение Text-to-Speech
+   - Интеграция AI-модели для диалога (GPT-4o или Llama-3)
+   - Реализация логики подбора товаров
 
-2. **Создать страницу ModeSelectorPage.tsx**
-   ```typescript
-   import { useNavigate } from 'react-router-dom';
-   import Lottie from 'lottie-react';
-   import { Button } from '@/components/Button/Button';
-   import teaCloudAnimation from '@/assets/animations/tea-cloud.json';
-   import './ModeSelectorPage.css';
-   
-   export const ModeSelectorPage = () => {
-     const navigate = useNavigate();
-   
-     const handleAIMode = () => {
-       // TODO: В следующей фазе добавим AI-диалог
-       // Пока перенаправляем на обычное меню
-       alert('AI-подбор будет доступен в следующей версии!');
-       navigate('/menu');
-     };
-   
-     const handleRegularOrder = () => {
-       navigate('/menu');
-     };
-   
-     return (
-       <div className="mode-selector-page">
-         <div className="mode-animation">
-           <Lottie 
-             animationData={teaCloudAnimation} 
-             loop 
-             className="lottie-animation"
-           />
-         </div>
-         
-         <div className="mode-buttons">
-           <Button
-             variant="primary"
-             size="large"
-             fullWidth
-             onClick={handleAIMode}
-             className="mode-button mode-button--ai"
-           >
-             <span className="button-text-ru">Подобрать товар</span>
-             <span className="button-text-zh">推荐商品</span>
-           </Button>
-           
-           <Button
-             variant="secondary"
-             size="large"
-             fullWidth
-             onClick={handleRegularOrder}
-             className="mode-button mode-button--regular"
-           >
-             <span className="button-text-ru">Обычный заказ</span>
-             <span className="button-text-zh">常规订单</span>
-           </Button>
-         </div>
-       </div>
-     );
-   };
-   ```
+2. **Тестированию на реальных клиентах**
+   - Пилотный запуск в кафе
+   - Сбор обратной связи
+   - Итерации улучшений
 
-3. **Создать стили ModeSelectorPage.css**
-   ```css
-   .mode-selector-page {
-     width: 100%;
-     height: 100vh;
-     background: linear-gradient(180deg, #FFFFFF 0%, #F5F5F5 100%);
-     display: flex;
-     flex-direction: column;
-     align-items: center;
-     justify-content: space-between;
-     padding: var(--spacing-xl) var(--spacing-lg);
-   }
-   
-   .mode-animation {
-     flex: 1;
-     display: flex;
-     align-items: center;
-     justify-content: center;
-     max-width: 500px;
-     width: 100%;
-   }
-   
-   .lottie-animation {
-     width: 100%;
-     height: 100%;
-   }
-   
-   .mode-buttons {
-     width: 100%;
-     max-width: 600px;
-     display: flex;
-     flex-direction: column;
-     gap: var(--spacing-md);
-   }
-   
-   .mode-button {
-     display: flex;
-     flex-direction: column;
-     gap: var(--spacing-xs);
-     padding: var(--spacing-lg) !important;
-   }
-   
-   .mode-button--ai {
-     background: var(--gradient-chinese) !important;
-     box-shadow: var(--shadow-lg) !important;
-   }
-   
-   .mode-button--regular {
-     opacity: 0.7;
-   }
-   
-   .button-text-ru {
-     font-size: var(--font-size-lg);
-     font-weight: 700;
-   }
-   
-   .button-text-zh {
-     font-size: var(--font-size-md);
-     font-weight: 500;
-     opacity: 0.9;
-   }
-   ```
-
-**✅ Критерий завершения:** Экран выбора режима работает, кнопки перенаправляют на меню
+3. **Интеграции реальной оплаты**
+   - Подключение эквайринга
+   - Интеграция СБП
+   - Система лояльности AI Cha
 
 ---
 
-### Задача 2.6: Разработка страницы меню (MenuPage)
+## Заключение
 
-Эта задача большая, поэтому разобьем на подзадачи.
+Данный план разработки базовой части проекта AI-Cha Terminal представляет собой детальное руководство для создания полнофункционального терминала самообслуживания для чайного кафе.
 
-#### Подзадача 2.6.1: Создание API клиента для товаров
+**Ключевые принципы:**
+- Модульная архитектура для легкой интеграции AI на следующем этапе
+- Двуязычность (русский + китайский) во всем интерфейсе
+- Оптимизация под ограниченные ресурсы Orange Pi
+- Китайская тематика в дизайне
+- Удобство использования для всех возрастных групп
 
-1. **Создать API клиент src/api/products.ts**
-   ```typescript
-   import axios from 'axios';
-   
-   const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
-   
-   export interface Category {
-     id: number;
-     name_ru: string;
-     name_zh: string;
-     slug: string;
-   }
-   
-   export interface Product {
-     id: number;
-     category_id: number;
-     name_ru: string;
-     name_zh: string;
-     description_ru: string;
-     description_zh: string;
-     price: number;
-     image_url: string;
-     is_available: boolean;
-   }
-   
-   export const productsApi = {
-     // Получить все категории
-     getCategories: async (): Promise<Category[]> => {
-       const response = await axios.get(`${API_BASE_URL}/categories`);
-       return response.data;
-     },
-   
-     // Получить все товары
-     getProducts: async (): Promise<Product[]> => {
-       const response = await axios.get(`${API_BASE_URL}/products`);
-       return response.data;
-     },
-   
-     // Получить товары по категории
-     getProductsByCategory: async (categoryId: number): Promise<Product[]> => {
-       const response = await axios.get(`${API_BASE_URL}/products`, {
-         params: { category_id: categoryId },
-       });
-       return response.data;
-     },
-   };
-   ```
+**Расчетное время разработки:** 6-8 недель для команды из 2-3 разработчиков (1 backend, 1-2 frontend).
 
-2. **Создать .env файл в корне frontend/**
-   ```env
-   VITE_API_URL=http://localhost:8080/api
-   ```
+**Технологический стек:**
+- Frontend: React + TypeScript + Vite + Tailwind CSS
+- Backend: Node.js + Fastify + PostgreSQL + Redis
+- DevOps: Docker + Docker Compose + Nginx
 
-#### Подзадача 2.6.2: Создание компонента карточки товара
+После завершения этого этапа система будет готова к интеграции AI-функционала и тестированию в реальных условиях кафе.
 
-1. **Создать ProductCard.tsx в src/components/ProductCard/**
-   ```typescript
-   import { Button } from '@/components/Button/Button';
-   import { Plus } from 'lucide-react';
-   import type { Product } from '@/api/products';
-   import './ProductCard.css';
-   
-   interface ProductCardProps {
-     product: Product;
-     onAddToCart: (product: Product) => void;
-   }
-   
-   export const ProductCard: React.FC<ProductCardProps> = ({ product, onAddToCart }) => {
-     return (
-       <div className="product-card">
-         <div className="product-image-container">
-           <img 
-             src={product.image_url || '/images/placeholder.jpg'} 
-             alt={product.name_ru}
-             className="product-image"
-           />
-         </div>
-         
-         <div className="product-info">
-           <h3 className="product-name-ru">{product.name_ru}</h3>
-           <p className="product-name-zh">{product.name_zh}</p>
-           <p className="product-description">{product.description_ru}</p>
-           
-           <div className="product-footer">
-             <span className="product-price">{product.price} ₽</span>
-             <Button
-               variant="primary"
-               size="small"
-               onClick={() => onAddToCart(product)}
-               disabled={!product.is_available}
-             >
-               <Plus size={20} />
-               <span>Добавить</span>
-             </Button>
-           </div>
-         </div>
-       </div>
-     );
-   };
-   ```
-
-2. **Создать стили ProductCard.css**
-   ```css
-   .product-card {
-     background: white;
-     border-radius: var(--radius-lg);
-     overflow: hidden;
-     box-shadow: var(--shadow-sm);
-     transition: all var(--transition-normal);
-     display: flex;
-     flex-direction: column;
-     height: 100%;
-   }
-   
-   .product-card:hover {
-     box-shadow: var(--shadow-md);
-     transform: translateY(-4px);
-   }
-   
-   .product-image-container {
-     width: 100%;
-     aspect-ratio: 1;
-     overflow: hidden;
-     background: #f5f5f5;
-   }
-   
-   .product-image {
-     width: 100%;
-     height: 100%;
-     object-fit: cover;
-   }
-   
-   .product-info {
-     padding: var(--spacing-sm);
-     display: flex;
-     flex-direction: column;
-     gap: var(--spacing-xs);
-     flex: 1;
-   }
-   
-   .product-name-ru {
-     font-size: var(--font-size-md);
-     font-weight: 600;
-     color: var(--color-text-black);
-   }
-   
-   .product-name-zh {
-     font-size: var(--font-size-sm);
-     color: var(--color-secondary-gray);
-   }
-   
-   .product-description {
-     font-size: var(--font-size-xs);
-     color: var(--color-secondary-gray);
-     line-height: 1.4;
-     flex: 1;
-   }
-   
-   .product-footer {
-     display: flex;
-     align-items: center;
-     justify-content: space-between;
-     margin-top: auto;
-   }
-   
-   .product-price {
-     font-size: var(--font-size-lg);
-     font-weight: 700;
-     color: var(--color-primary-red);
-   }
-   ```
-
-#### Подзадача 2.6.3: Создание страницы меню
-
-1. **Создать MenuPage.tsx**
-   ```typescript
-   import { useState, useEffect } from 'react';
-   import { useNavigate } from 'react-router-dom';
-   import { ShoppingCart } from 'lucide-react';
-   import { productsApi, Category, Product } from '@/api/products';
-   import { ProductCard } from '@/components/ProductCard/ProductCard';
-   import { useCart } from '@/context/CartContext';
-   import { Button } from '@/components/Button/Button';
-   import './MenuPage.css';
-   
-   export const MenuPage = () => {
-     const navigate = useNavigate();
-     const { addItem, itemCount } = useCart();
-     const [categories, setCategories] = useState<Category[]>([]);
-     const [products, setProducts] = useState<Product[]>([]);
-     const [selectedCategory, setSelectedCategory] = useState<number | null>(null);
-     const [loading, setLoading] = useState(true);
-   
-     useEffect(() => {
-       loadData();
-     }, []);
-   
-     const loadData = async () => {
-       try {
-         setLoading(true);
-         const [categoriesData, productsData] = await Promise.all([
-           productsApi.getCategories(),
-           productsApi.getProducts(),
-         ]);
-         setCategories(categoriesData);
-         setProducts(productsData);
-       } catch (error) {
-         console.error('Ошибка загрузки данных:', error);
-       } finally {
-         setLoading(false);
-       }
-     };
-   
-     const filteredProducts = selectedCategory
-       ? products.filter((p) => p.category_id === selectedCategory)
-       : products;
-   
-     const handleAddToCart = (product: Product) => {
-       addItem(product);
-       // Небольшая анимация или уведомление
-     };
-   
-     if (loading) {
-       return <div className="menu-loading">Загрузка меню...</div>;
-     }
-   
-     return (
-       <div className="menu-page">
-         <header className="menu-header">
-           <h1 className="menu-title">
-             <span className="title-ru">Меню</span>
-             <span className="title-zh">菜单</span>
-           </h1>
-           
-           <button 
-             className="cart-button"
-             onClick={() => navigate('/cart')}
-           >
-             <ShoppingCart size={24} />
-             {itemCount > 0 && (
-               <span className="cart-badge">{itemCount}</span>
-             )}
-           </button>
-         </header>
-   
-         <div className="categories-tabs">
-           <button
-             className={`category-tab ${selectedCategory === null ? 'active' : ''}`}
-             onClick={() => setSelectedCategory(null)}
-           >
-             Все товары
-           </button>
-           {categories.map((category) => (
-             <button
-               key={category.id}
-               className={`category-tab ${selectedCategory === category.id ? 'active' : ''}`}
-               onClick={() => setSelectedCategory(category.id)}
-             >
-               <span className="category-name-ru">{category.name_ru}</span>
-               <span className="category-name-zh">{category.name_zh}</span>
-             </button>
-           ))}
-         </div>
-   
-         <div className="products-grid">
-           {filteredProducts.map((product) => (
-             <ProductCard
-               key={product.id}
-               product={product}
-               onAddToCart={handleAddToCart}
-             />
-           ))}
-         </div>
-   
-         {itemCount > 0 && (
-           <div className="checkout-bar">
-             <Button
-               variant="primary"
-               size="large"
-               fullWidth
-               onClick={() => navigate('/cart')}
-             >
-               Перейти к оформлению ({itemCount} товар{itemCount > 1 ? 'а' : ''})
-             </Button>
-           </div>
-         )}
-       </div>
-     );
-   };
-   ```
-
-2. **Создать стили MenuPage.css**
-   ```css
-   .menu-page {
-     width: 100%;
-     min-height: 100vh;
-     background: #f9f9f9;
-     display: flex;
-     flex-direction: column;
-     padding-bottom: 100px; /* Место для кнопки оформления */
-   }
-   
-   .menu-header {
-     background: white;
-     padding: var(--spacing-md) var(--spacing-lg);
-     box-shadow: var(--shadow-sm);
-     display: flex;
-     justify-content: space-between;
-     align-items: center;
-     position: sticky;
-     top: 0;
-     z-index: 10;
-   }
-   
-   .menu-title {
-     display: flex;
-     flex-direction: column;
-   }
-   
-   .title-ru {
-     font-size: var(--font-size-xl);
-     font-weight: 700;
-     color: var(--color-text-black);
-   }
-   
-   .title-zh {
-     font-size: var(--font-size-md);
-     color: var(--color-secondary-gray);
-   }
-   
-   .cart-button {
-     position: relative;
-     background: var(--color-primary-red);
-     color: white;
-     width: 60px;
-     height: 60px;
-     border-radius: 50%;
-     display: flex;
-     align-items: center;
-     justify-content: center;
-     box-shadow: var(--shadow-md);
-   }
-   
-   .cart-badge {
-     position: absolute;
-     top: -5px;
-     right: -5px;
-     background: var(--color-primary-gold);
-     color: var(--color-text-black);
-     font-size: 12px;
-     font-weight: 700;
-     padding: 4px 8px;
-     border-radius: 12px;
-     min-width: 24px;
-     text-align: center;
-   }
-   
-   .categories-tabs {
-     display: flex;
-     gap: var(--spacing-sm);
-     padding: var(--spacing-md) var(--spacing-lg);
-     overflow-x: auto;
-     background: white;
-     border-bottom: 1px solid #e0e0e0;
-   }
-   
-   .category-tab {
-     flex-shrink: 0;
-     padding: var(--spacing-sm) var(--spacing-md);
-     background: #f5f5f5;
-     border-radius: var(--radius-md);
-     border: 2px solid transparent;
-     transition: all var(--transition-normal);
-     display: flex;
-     flex-direction: column;
-     align-items: center;
-     gap: 4px;
-   }
-   
-   .category-tab.active {
-     background: var(--color-primary-red);
-     color: white;
-   }
-   
-   .category-name-ru {
-     font-weight: 600;
-     font-size: var(--font-size-sm);
-   }
-   
-   .category-name-zh {
-     font-size: var(--font-size-xs);
-     opacity: 0.8;
-   }
-   
-   .products-grid {
-     display: grid;
-     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-     gap: var(--spacing-md);
-     padding: var(--spacing-lg);
-   }
-   
-   .checkout-bar {
-     position: fixed;
-     bottom: 0;
-     left: 0;
-     right: 0;
-     background: white;
-     padding: var(--spacing-md) var(--spacing-lg);
-     box-shadow: 0 -4px 8px rgba(0, 0, 0, 0.1);
-     z-index: 100;
-   }
-   
-   .menu-loading {
-     width: 100%;
-     height: 100vh;
-     display: flex;
-     align-items: center;
-     justify-content: center;
-     font-size: var(--font-size-lg);
-     color: var(--color-secondary-gray);
-   }
-   ```
-
-**✅ Критерий завершения:** Страница меню отображает товары из API, работает фильтрация по категориям, товары добавляются в корзину
-
----
-
-### Задача 2.7: Разработка страницы корзины (CartPage)
-
-#### Шаги выполнения:
-
-1. **Создать компонент CartItem src/components/CartItem/CartItem.tsx**
-   ```typescript
-   import { Trash2, Plus, Minus } from 'lucide-react';
-   import './CartItem.css';
-   
-   interface CartItemProps {
-     id: number;
-     name_ru: string;
-     name_zh: string;
-     price: number;
-     quantity: number;
-     image_url?: string;
-     onUpdateQuantity: (id: number, quantity: number) => void;
-     onRemove: (id: number) => void;
-   }
-   
-   export const CartItem: React.FC<CartItemProps> = ({
-     id,
-     name_ru,
-     name_zh,
-     price,
-     quantity,
-     image_url,
-     onUpdateQuantity,
-     onRemove,
-   }) => {
-     return (
-       <div className="cart-item">
-         <img 
-           src={image_url || '/images/placeholder.jpg'} 
-           alt={name_ru}
-           className="cart-item-image"
-         />
-         
-         <div className="cart-item-info">
-           <h3 className="cart-item-name-ru">{name_ru}</h3>
-           <p className="cart-item-name-zh">{name_zh}</p>
-           <p className="cart-item-price">{price} ₽</p>
-         </div>
-         
-         <div className="cart-item-controls">
-           <div className="quantity-controls">
-             <button 
-               className="quantity-btn"
-               onClick={() => onUpdateQuantity(id, quantity - 1)}
-             >
-               <Minus size={16} />
-             </button>
-             <span className="quantity-value">{quantity}</span>
-             <button 
-               className="quantity-btn"
-               onClick={() => onUpdateQuantity(id, quantity + 1)}
-             >
-               <Plus size={16} />
-             </button>
-           </div>
-           
-           <button 
-             className="remove-btn"
-             onClick={() => onRemove(id)}
-           >
-             <Trash2 size={20} />
-           </button>
-         </div>
-         
-         <div className="cart-item-total">
-           {(price * quantity).toFixed(2)} ₽
-         </div>
-       </div>
-     );
-   };
-   ```
-
-2. **Создать стили CartItem.css**
-   ```css
-   .cart-item {
-     background: white;
-     border-radius: var(--radius-md);
-     padding: var(--spacing-sm);
-     display: grid;
-     grid-template-columns: 80px 1fr auto auto;
-     gap: var(--spacing-sm);
-     align-items: center;
-     box-shadow: var(--shadow-sm);
-   }
-   
-   .cart-item-image {
-     width: 80px;
-     height: 80px;
-     object-fit: cover;
-     border-radius: var(--radius-sm);
-   }
-   
-   .cart-item-info {
-     display: flex;
-     flex-direction: column;
-     gap: 4px;
-   }
-   
-   .cart-item-name-ru {
-     font-size: var(--font-size-sm);
-     font-weight: 600;
-   }
-   
-   .cart-item-name-zh {
-     font-size: var(--font-size-xs);
-     color: var(--color-secondary-gray);
-   }
-   
-   .cart-item-price {
-     font-size: var(--font-size-sm);
-     color: var(--color-primary-red);
-     font-weight: 600;
-   }
-   
-   .cart-item-controls {
-     display: flex;
-     flex-direction: column;
-     gap: var(--spacing-xs);
-   }
-   
-   .quantity-controls {
-     display: flex;
-     align-items: center;
-     gap: 8px;
-     background: #f5f5f5;
-     padding: 4px;
-     border-radius: var(--radius-sm);
-   }
-   
-   .quantity-btn {
-     width: 32px;
-     height: 32px;
-     border-radius: 50%;
-     background: white;
-     display: flex;
-     align-items: center;
-     justify-content: center;
-     box-shadow: var(--shadow-sm);
-   }
-   
-   .quantity-value {
-     min-width: 30px;
-     text-align: center;
-     font-weight: 600;
-   }
-   
-   .remove-btn {
-     background: transparent;
-     color: var(--color-secondary-gray);
-     padding: var(--spacing-xs);
-   }
-   
-   .remove-btn:hover {
-     color: var(--color-primary-red);
-   }
-   
-   .cart-item-total {
-     font-size: var(--font-size-lg);
-     font-weight: 700;
-     color: var(--color-text-black);
-     text-align: right;
-     min-width: 100px;
-   }
-   ```
-
-3. **Создать CartPage.tsx**
-   ```typescript
-   import { useNavigate } from 'react-router-dom';
-   import { ArrowLeft } from 'lucide-react';
-   import { useCart } from '@/context/CartContext';
-   import { CartItem } from '@/components/CartItem/CartItem';
-   import { Button } from '@/components/Button/Button';
-   import './CartPage.css';
-   
-   export const CartPage = () => {
-     const navigate = useNavigate();
-     const { items, updateQuantity, removeItem, totalAmount, clearCart } = useCart();
-   
-     if (items.length === 0) {
-       return (
-         <div className="cart-empty">
-           <h2>Корзина пуста</h2>
-           <p>Добавьте товары из меню</p>
-           <Button onClick={() => navigate('/menu')}>
-             Перейти к меню
-           </Button>
-         </div>
-       );
-     }
-   
-     return (
-       <div className="cart-page">
-         <header className="cart-header">
-           <button className="back-btn" onClick={() => navigate('/menu')}>
-             <ArrowLeft size={24} />
-           </button>
-           <h1 className="cart-title">
-             <span className="title-ru">Корзина</span>
-             <span className="title-zh">购物车</span>
-           </h1>
-           <button className="clear-btn" onClick={clearCart}>
-             Очистить
-           </button>
-         </header>
-   
-         <div className="cart-items">
-           {items.map((item) => (
-             <CartItem
-               key={item.id}
-               id={item.id}
-               name_ru={item.name_ru}
-               name_zh={item.name_zh}
-               price={item.price}
-               quantity={item.quantity}
-               image_url={item.image_url}
-               onUpdateQuantity={updateQuantity}
-               onRemove={removeItem}
-             />
-           ))}
-         </div>
-   
-         <div className="cart-summary">
-           <div className="summary-row">
-             <span>Итого товаров:</span>
-             <span>{items.reduce((sum, item) => sum + item.quantity, 0)}</span>
-           </div>
-           <div className="summary-row total">
-             <span>К оплате:</span>
-             <span>{totalAmount.toFixed(2)} ₽</span>
-           </div>
-         </div>
-   
-         <div className="cart-actions">
-           <Button
-             variant="ghost"
-             size="large"
-             fullWidth
-             onClick={() => navigate('/menu')}
-           >
-             Добавить ещё
-           </Button>
-           <Button
-             variant="primary"
-             size="large"
-             fullWidth
-             onClick={() => navigate('/payment')}
-           >
-             Перейти к оплате
-           </Button>
-         </div>
-       </div>
-     );
-   };
-   ```
-
-4. **Создать стили CartPage.css**
-   ```css
-   .cart-page {
-     width: 100%;
-     min-height: 100vh;
-     background: #f9f9f9;
-     display: flex;
-     flex-direction: column;
-   }
-   
-   .cart-header {
-     background: white;
-     padding: var(--spacing-md) var(--spacing-lg);
-     box-shadow: var(--shadow-sm);
-     display: flex;
-     justify-content: space-between;
-     align-items: center;
-   }
-   
-   .back-btn {
-     background: transparent;
-     padding: var(--spacing-xs);
-   }
-   
-   .clear-btn {
-     background: transparent;
-     color: var(--color-primary-red);
-     padding: var(--spacing-xs) var(--spacing-sm);
-   }
-   
-   .cart-items {
-     flex: 1;
-     padding: var(--spacing-lg);
-     display: flex;
-     flex-direction: column;
-     gap: var(--spacing-sm);
-   }
-   
-   .cart-summary {
-     background: white;
-     padding: var(--spacing-lg);
-     border-top: 1px solid #e0e0e0;
-   }
-   
-   .summary-row {
-     display: flex;
-     justify-content: space-between;
-     padding: var(--spacing-sm) 0;
-     font-size: var(--font-size-md);
-   }
-   
-   .summary-row.total {
-     border-top: 2px solid var(--color-primary-red);
-     font-size: var(--font-size-lg);
-     font-weight: 700;
-     color: var(--color-primary-red);
-     padding-top: var(--spacing-md);
-   }
-   
-   .cart-actions {
-     padding: var(--spacing-lg);
-     background: white;
-     display: flex;
-     gap: var(--spacing-sm);
-     box-shadow: 0 -4px 8px rgba(0, 0, 0, 0.1);
-   }
-   
-   .cart-empty {
-     width: 100%;
-     height: 100vh;
-     display: flex;
-     flex-direction: column;
-     align-items: center;
-     justify-content: center;
-     gap: var(--spacing-md);
-     text-align: center;
-   }
-   ```
-
-**✅ Критерий завершения:** Корзина работает, можно изменять количество, удалять товары, переходить к оплате
-
----
-
-## ⏸️ ТОЧКА ОСТАНОВКИ №1
-
-**Вы успешно завершили первую часть Frontend разработки!**
-
-На этом этапе у вас должно быть:
-- ✅ Приветственный экран
-- ✅ Экран выбора режима
-- ✅ Страница меню с категориями
-- ✅ Корзина с управлением товарами
-
-**Что нужно сделать перед продолжением:**
-1. Протестировать все созданные страницы
-2. Убедиться, что навигация работает
-3. Проверить, что корзина сохраняет товары
-
-**Следующие шаги:** Разработка страниц оплаты, оценки и панели для сотрудников.
-
----
-
-### Задача 2.8: Разработка страницы оплаты (PaymentPage)
-
-#### Шаги выполнения:
-
-1. **Создать PaymentPage.tsx**
-   ```typescript
-   import { useState } from 'react';
-   import { useNavigate } from 'react-router-dom';
-   import { CreditCard, Smartphone, QrCode } from 'lucide-react';
-   import { useCart } from '@/context/CartContext';
-   import { Button } from '@/components/Button/Button';
-   import './PaymentPage.css';
-   
-   type PaymentMethod = 'card' | 'aicha_card' | 'sbp';
-   
-   export const PaymentPage = () => {
-     const navigate = useNavigate();
-     const { totalAmount, clearCart } = useCart();
-     const [processing, setProcessing] = useState(false);
-   
-     const handlePayment = async (method: PaymentMethod) => {
-       setProcessing(true);
-       
-       // Имитация обработки платежа (заглушка)
-       await new Promise(resolve => setTimeout(resolve, 1500));
-       
-       // Очищаем корзину
-       clearCart();
-       
-       // Переходим к странице оценки
-       navigate('/rating');
-     };
-   
-     return (
-       <div className="payment-page">
-         <div className="payment-container">
-           <h1 className="payment-title">
-             <span className="title-ru">Оплата заказа</span>
-             <span className="title-zh">订单支付</span>
-           </h1>
-   
-           <div className="payment-amount">
-             <span className="amount-label">К оплате:</span>
-             <span className="amount-value">{totalAmount.toFixed(2)} ₽</span>
-           </div>
-   
-           <div className="payment-methods">
-             <button 
-               className="payment-method-btn"
-               onClick={() => handlePayment('card')}
-               disabled={processing}
-             >
-               <CreditCard size={48} />
-               <span className="method-name-ru">Банковская карта</span>
-               <span className="method-name-zh">银行卡</span>
-             </button>
-   
-             <button 
-               className="payment-method-btn"
-               onClick={() => handlePayment('aicha_card')}
-               disabled={processing}
-             >
-               <Smartphone size={48} />
-               <span className="method-name-ru">Карта AI Cha</span>
-               <span className="method-name-zh">爱茶卡</span>
-             </button>
-   
-             <button 
-               className="payment-method-btn"
-               onClick={() => handlePayment('sbp')}
-               disabled={processing}
-             >
-               <QrCode size={48} />
-               <span className="method-name-ru">СБП (QR-код)</span>
-               <span className="method-name-zh">快速支付</span>
-             </button>
-           </div>
-   
-           {processing && (
-             <div className="processing-overlay">
-               <div className="spinner"></div>
-               <p>Обработка платежа...</p>
-             </div>
-           )}
-   
-           <Button
-             variant="ghost"
-             size="medium"
-             fullWidth
-             onClick={() => navigate('/cart')}
-             disabled={processing}
-           >
-             Вернуться к корзине
-           </Button>
-   
-           <p className="payment-note">
-             ⚠️ Примечание: Это демо-версия. Реальная оплата будет подключена позже.
-           </p>
-         </div>
-       </div>
-     );
-   };
-   ```
-
-2. **Создать стили PaymentPage.css**
-   ```css
-   .payment-page {
-     width: 100%;
-     min-height: 100vh;
-     background: var(--gradient-chinese);
-     display: flex;
-     align-items: center;
-     justify-content: center;
-     padding: var(--spacing-lg);
-   }
-   
-   .payment-container {
-     background: white;
-     border-radius: var(--radius-lg);
-     padding: var(--spacing-xl);
-     max-width: 600px;
-     width: 100%;
-     box-shadow: var(--shadow-lg);
-   }
-   
-   .payment-title {
-     text-align: center;
-     margin-bottom: var(--spacing-xl);
-     display: flex;
-     flex-direction: column;
-     gap: var(--spacing-xs);
-   }
-   
-   .payment-amount {
-     background: #f5f5f5;
-     padding: var(--spacing-lg);
-     border-radius: var(--radius-md);
-     display: flex;
-     justify-content: space-between;
-     align-items: center;
-     margin-bottom: var(--spacing-xl);
-   }
-   
-   .amount-label {
-     font-size: var(--font-size-md);
-     color: var(--color-secondary-gray);
-   }
-   
-   .amount-value {
-     font-size: var(--font-size-xxl);
-     font-weight: 700;
-     color: var(--color-primary-red);
-   }
-   
-   .payment-methods {
-     display: grid;
-     grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-     gap: var(--spacing-md);
-     margin-bottom: var(--spacing-xl);
-   }
-   
-   .payment-method-btn {
-     background: white;
-     border: 2px solid #e0e0e0;
-     border-radius: var(--radius-md);
-     padding: var(--spacing-lg);
-     display: flex;
-     flex-direction: column;
-     align-items: center;
-     gap: var(--spacing-sm);
-     transition: all var(--transition-normal);
-     cursor: pointer;
-     min-height: 180px;
-   }
-   
-   .payment-method-btn:hover:not(:disabled) {
-     border-color: var(--color-primary-red);
-     transform: translateY(-4px);
-     box-shadow: var(--shadow-md);
-   }
-   
-   .payment-method-btn:disabled {
-     opacity: 0.5;
-     cursor: not-allowed;
-   }
-   
-   .payment-method-btn svg {
-     color: var(--color-primary-red);
-   }
-   
-   .method-name-ru {
-     font-size: var(--font-size-sm);
-     font-weight: 600;
-     text-align: center;
-   }
-   
-   .method-name-zh {
-     font-size: var(--font-size-xs);
-     color: var(--color-secondary-gray);
-     text-align: center;
-   }
-   
-   .processing-overlay {
-     position: fixed;
-     top: 0;
-     left: 0;
-     right: 0;
-     bottom: 0;
-     background: rgba(0, 0, 0, 0.7);
-     display: flex;
-     flex-direction: column;
-     align-items: center;
-     justify-content: center;
-     gap: var(--spacing-md);
-     color: white;
-     font-size: var(--font-size-lg);
-     z-index: 1000;
-   }
-   
-   .spinner {
-     width: 60px;
-     height: 60px;
-     border: 4px solid rgba(255, 255, 255, 0.3);
-     border-top-color: white;
-     border-radius: 50%;
-     animation: spin 1s linear infinite;
-   }
-   
-   @keyframes spin {
-     to { transform: rotate(360deg); }
-   }
-   
-   .payment-note {
-     margin-top: var(--spacing-md);
-     text-align: center;
-     font-size: var(--font-size-xs);
-     color: var(--color-secondary-gray);
-     font-style: italic;
-   }
-   ```
-
-**✅ Критерий завершения:** Страница оплаты работает с заглушками, переходит к оценке после "оплаты"
-
----
-
-### Задача 2.9: Разработка страницы оценки сервиса (RatingPage)
-
-#### Шаги выполнения:
-
-1. **Создать RatingPage.tsx**
-   ```typescript
-   import { useState } from 'react';
-   import { useNavigate } from 'react-router-dom';
-   import { Star } from 'lucide-react';
-   import { Button } from '@/components/Button/Button';
-   import './RatingPage.css';
-   
-   export const RatingPage = () => {
-     const navigate = useNavigate();
-     const [rating, setRating] = useState<number | null>(null);
-     const [hoverRating, setHoverRating] = useState<number | null>(null);
-     const [submitted, setSubmitted] = useState(false);
-   
-     const handleRatingClick = (value: number) => {
-       setRating(value);
-     };
-   
-     const handleSubmit = async () => {
-       if (rating) {
-         // TODO: Отправить оценку на сервер
-         console.log('Оценка:', rating);
-         setSubmitted(true);
-         
-         // Через 2 секунды вернуться на главную
-         setTimeout(() => {
-           navigate('/');
-         }, 2000);
-       }
-     };
-   
-     const handleSkip = () => {
-       navigate('/');
-     };
-   
-     if (submitted) {
-       return (
-         <div className="rating-page">
-           <div className="rating-container">
-             <div className="success-animation">✓</div>
-             <h2 className="success-title">Спасибо за отзыв!</h2>
-             <p className="success-message">Возврат на главную...</p>
-           </div>
-         </div>
-       );
-     }
-   
-     return (
-       <div className="rating-page">
-         <div className="rating-container">
-           <h1 className="rating-title">
-             <span className="title-ru">Как вы оцените процесс заказа в AI Cha?</span>
-             <span className="title-zh">您如何评价爱茶的订餐流程？</span>
-           </h1>
-   
-           <div className="stars-container">
-             {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((value) => (
-               <button
-                 key={value}
-                 className={`star-btn ${value <= (hoverRating || rating || 0) ? 'active' : ''}`}
-                 onClick={() => handleRatingClick(value)}
-                 onMouseEnter={() => setHoverRating(value)}
-                 onMouseLeave={() => setHoverRating(null)}
-               >
-                 <Star 
-                   size={48} 
-                   fill={value <= (hoverRating || rating || 0) ? 'currentColor' : 'none'}
-                 />
-                 <span className="star-number">{value}</span>
-               </button>
-             ))}
-           </div>
-   
-           {rating && (
-             <p className="rating-text">
-               {rating <= 3 && 'Нам жаль, что вам не понравилось 😢'}
-               {rating > 3 && rating <= 6 && 'Спасибо за оценку! Мы будем улучшаться 🙂'}
-               {rating > 6 && rating <= 8 && 'Отлично! Рады, что вам понравилось 😊'}
-               {rating > 8 && 'Превосходно! Вы сделали наш день! 🎉'}
-             </p>
-           )}
-   
-           <div className="rating-actions">
-             <Button
-               variant="primary"
-               size="large"
-               fullWidth
-               onClick={handleSubmit}
-               disabled={!rating}
-             >
-               Отправить оценку
-             </Button>
-             <Button
-               variant="ghost"
-               size="medium"
-               fullWidth
-               onClick={handleSkip}
-             >
-               Пропустить
-             </Button>
-           </div>
-         </div>
-       </div>
-     );
-   };
-   ```
-
-2. **Создать стили RatingPage.css**
-   ```css
-   .rating-page {
-     width: 100%;
-     min-height: 100vh;
-     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-     display: flex;
-     align-items: center;
-     justify-content: center;
-     padding: var(--spacing-lg);
-   }
-   
-   .rating-container {
-     background: white;
-     border-radius: var(--radius-lg);
-     padding: var(--spacing-xl);
-     max-width: 800px;
-     width: 100%;
-     box-shadow: var(--shadow-lg);
-     text-align: center;
-   }
-   
-   .rating-title {
-     margin-bottom: var(--spacing-xl);
-     display: flex;
-     flex-direction: column;
-     gap: var(--spacing-sm);
-   }
-   
-   .stars-container {
-     display: flex;
-     justify-content: center;
-     gap: var(--spacing-sm);
-     margin-bottom: var(--spacing-lg);
-     flex-wrap: wrap;
-   }
-   
-   .star-btn {
-     background: transparent;
-     border: none;
-     cursor: pointer;
-     padding: var(--spacing-xs);
-     transition: all var(--transition-fast);
-     position: relative;
-     display: flex;
-     flex-direction: column;
-     align-items: center;
-     gap: 4px;
-   }
-   
-   .star-btn svg {
-     color: #ddd;
-     transition: all var(--transition-fast);
-   }
-   
-   .star-btn.active svg {
-     /* Градиент от красного к зеленому */
-     color: #ffd700;
-     transform: scale(1.1);
-   }
-   
-   .star-btn:nth-child(-n+3).active svg {
-     color: #ff4444; /* Красный для 1-3 */
-   }
-   
-   .star-btn:nth-child(n+4):nth-child(-n+6).active svg {
-     color: #ffaa00; /* Оранжевый для 4-6 */
-   }
-   
-   .star-btn:nth-child(n+7):nth-child(-n+8).active svg {
-     color: #ffd700; /* Золотой для 7-8 */
-   }
-   
-   .star-btn:nth-child(n+9).active svg {
-     color: #44ff44; /* Зеленый для 9-10 */
-   }
-   
-   .star-btn:hover {
-     transform: scale(1.2);
-   }
-   
-   .star-number {
-     font-size: var(--font-size-xs);
-     font-weight: 600;
-     color: var(--color-secondary-gray);
-   }
-   
-   .rating-text {
-     font-size: var(--font-size-lg);
-     color: var(--color-text-black);
-     margin-bottom: var(--spacing-lg);
-     min-height: 40px;
-     animation: fadeIn 0.3s ease;
-   }
-   
-   @keyframes fadeIn {
-     from { opacity: 0; transform: translateY(-10px); }
-     to { opacity: 1; transform: translateY(0); }
-   }
-   
-   .rating-actions {
-     display: flex;
-     flex-direction: column;
-     gap: var(--spacing-sm);
-   }
-   
-   .success-animation {
-     width: 100px;
-     height: 100px;
-     background: var(--color-primary-green);
-     border-radius: 50%;
-     display: flex;
-     align-items: center;
-     justify-content: center;
-     font-size: 60px;
-     color: white;
-     margin: 0 auto var(--spacing-lg);
-     animation: successPop 0.5s ease;
-   }
-   
-   @keyframes successPop {
-     0% { transform: scale(0); }
-     50% { transform: scale(1.2); }
-     100% { transform: scale(1); }
-   }
-   
-   .success-title {
-     font-size: var(--font-size-xl);
-     color: var(--color-primary-green);
-     margin-bottom: var(--spacing-sm);
-   }
-   
-   .success-message {
-     font-size: var(--font-size-md);
-     color: var(--color-secondary-gray);
-   }
-   ```
-
-**✅ Критерий завершения:** Страница оценки работает, отправляет оценку (пока в консоль) и возвращает на главную
-
----
-
-### Задача 2.10: Разработка панели для сотрудников (StaffPanel)
-
-#### Шаги выполнения:
-
-1. **Создать API для заказов src/api/orders.ts**
-   ```typescript
-   import axios from 'axios';
-   
-   const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
-   
-   export interface Order {
-     id: number;
-     order_number: string;
-     total_amount: number;
-     status: 'pending' | 'preparing' | 'ready' | 'completed' | 'cancelled';
-     payment_method: string;
-     payment_status: string;
-     created_at: string;
-     items: OrderItem[];
-   }
-   
-   export interface OrderItem {
-     id: number;
-     product_id: number;
-     product_name_ru: string;
-     product_name_zh: string;
-     quantity: number;
-     price: number;
-   }
-   
-   export const ordersApi = {
-     // Получить все заказы
-     getOrders: async (): Promise<Order[]> => {
-       const response = await axios.get(`${API_BASE_URL}/orders`);
-       return response.data;
-     },
-   
-     // Получить заказы по статусу
-     getOrdersByStatus: async (status: string): Promise<Order[]> => {
-       const response = await axios.get(`${API_BASE_URL}/orders`, {
-         params: { status },
-       });
-       return response.data;
-     },
-   
-     // Обновить статус заказа
-     updateOrderStatus: async (orderId: number, status: string): Promise<Order> => {
-       const response = await axios.patch(`${API_BASE_URL}/orders/${orderId}/status`, {
-         status,
-       });
-       return response.data;
-     },
-   };
-   ```
-
-2. **Создать компонент OrderCard src/components/OrderCard/OrderCard.tsx**
-   ```typescript
-   import { Clock, CheckCircle } from 'lucide-react';
-   import { Button } from '@/components/Button/Button';
-   import type { Order } from '@/api/orders';
-   import './OrderCard.css';
-   
-   interface OrderCardProps {
-     order: Order;
-     onUpdateStatus: (orderId: number, status: string) => void;
-   }
-   
-   export const OrderCard: React.FC<OrderCardProps> = ({ order, onUpdateStatus }) => {
-     const getStatusText = (status: string) => {
-       const statusMap = {
-         'pending': 'Ожидает',
-         'preparing': 'Готовится',
-         'ready': 'Готов',
-         'completed': 'Выдан',
-         'cancelled': 'Отменен',
-       };
-       return statusMap[status as keyof typeof statusMap] || status;
-     };
-   
-     const getStatusClass = (status: string) => {
-       return `order-status order-status--${status}`;
-     };
-   
-     const getNextStatus = (currentStatus: string): string | null => {
-       const statusFlow = {
-         'pending': 'preparing',
-         'preparing': 'ready',
-         'ready': 'completed',
-       };
-       return statusFlow[currentStatus as keyof typeof statusFlow] || null;
-     };
-   
-     const nextStatus = getNextStatus(order.status);
-   
-     return (
-       <div className="order-card">
-         <div className="order-header">
-           <div>
-             <h3 className="order-number">Заказ #{order.order_number}</h3>
-             <span className={getStatusClass(order.status)}>
-               {getStatusText(order.status)}
-             </span>
-           </div>
-           <span className="order-time">
-             <Clock size={16} />
-             {new Date(order.created_at).toLocaleTimeString('ru-RU', {
-               hour: '2-digit',
-               minute: '2-digit',
-             })}
-           </span>
-         </div>
-   
-         <div className="order-items">
-           {order.items.map((item) => (
-             <div key={item.id} className="order-item">
-               <span className="item-name">
-                 {item.product_name_ru} <span className="item-name-zh">{item.product_name_zh}</span>
-               </span>
-               <span className="item-quantity">x{item.quantity}</span>
-             </div>
-           ))}
-         </div>
-   
-         <div className="order-footer">
-           <span className="order-total">Итого: {order.total_amount.toFixed(2)} ₽</span>
-           {nextStatus && (
-             <Button
-               variant="primary"
-               size="medium"
-               onClick={() => onUpdateStatus(order.id, nextStatus)}
-             >
-               <CheckCircle size={18} />
-               {nextStatus === 'preparing' && 'Начать готовить'}
-               {nextStatus === 'ready' && 'Готов'}
-               {nextStatus === 'completed' && 'Выдано'}
-             </Button>
-           )}
-         </div>
-       </div>
-     );
-   };
-   ```
-
-3. **Создать стили OrderCard.css**
-   ```css
-   .order-card {
-     background: white;
-     border-radius: var(--radius-md);
-     padding: var(--spacing-md);
-     box-shadow: var(--shadow-sm);
-     border-left: 4px solid var(--color-secondary-gray);
-   }
-   
-   .order-card[class*="order-status--pending"] {
-     border-left-color: #ff9800;
-   }
-   
-   .order-card[class*="order-status--preparing"] {
-     border-left-color: #2196f3;
-   }
-   
-   .order-card[class*="order-status--ready"] {
-     border-left-color: #4caf50;
-   }
-   
-   .order-header {
-     display: flex;
-     justify-content: space-between;
-     align-items: flex-start;
-     margin-bottom: var(--spacing-sm);
-   }
-   
-   .order-number {
-     font-size: var(--font-size-lg);
-     font-weight: 700;
-     margin-bottom: 4px;
-   }
-   
-   .order-status {
-     display: inline-block;
-     padding: 4px 12px;
-     border-radius: 12px;
-     font-size: var(--font-size-xs);
-     font-weight: 600;
-   }
-   
-   .order-status--pending {
-     background: #fff3e0;
-     color: #f57c00;
-   }
-   
-   .order-status--preparing {
-     background: #e3f2fd;
-     color: #1976d2;
-   }
-   
-   .order-status--ready {
-     background: #e8f5e9;
-     color: #388e3c;
-   }
-   
-   .order-time {
-     display: flex;
-     align-items: center;
-     gap: 4px;
-     font-size: var(--font-size-sm);
-     color: var(--color-secondary-gray);
-   }
-   
-   .order-items {
-     margin: var(--spacing-sm) 0;
-     padding: var(--spacing-sm);
-     background: #f9f9f9;
-     border-radius: var(--radius-sm);
-   }
-   
-   .order-item {
-     display: flex;
-     justify-content: space-between;
-     padding: 4px 0;
-   }
-   
-   .item-name {
-     font-weight: 500;
-   }
-   
-   .item-name-zh {
-     font-size: var(--font-size-xs);
-     color: var(--color-secondary-gray);
-     margin-left: 4px;
-   }
-   
-   .item-quantity {
-     font-weight: 600;
-     color: var(--color-primary-red);
-   }
-   
-   .order-footer {
-     display: flex;
-     justify-content: space-between;
-     align-items: center;
-     margin-top: var(--spacing-sm);
-     padding-top: var(--spacing-sm);
-     border-top: 1px solid #e0e0e0;
-   }
-   
-   .order-total {
-     font-size: var(--font-size-md);
-     font-weight: 700;
-   }
-   ```
-
-4. **Создать StaffPanel.tsx**
-   ```typescript
-   import { useState, useEffect } from 'react';
-   import { ordersApi, Order } from '@/api/orders';
-   import { OrderCard } from '@/components/OrderCard/OrderCard';
-   import './StaffPanel.css';
-   
-   export const StaffPanel = () => {
-     const [orders, setOrders] = useState<Order[]>([]);
-     const [filter, setFilter] = useState<string>('all');
-     const [loading, setLoading] = useState(true);
-   
-     useEffect(() => {
-       loadOrders();
-       
-       // Обновление каждые 5 секунд
-       const interval = setInterval(loadOrders, 5000);
-       return () => clearInterval(interval);
-     }, [filter]);
-   
-     const loadOrders = async () => {
-       try {
-         const data = filter === 'all' 
-           ? await ordersApi.getOrders()
-           : await ordersApi.getOrdersByStatus(filter);
-         setOrders(data);
-       } catch (error) {
-         console.error('Ошибка загрузки заказов:', error);
-       } finally {
-         setLoading(false);
-       }
-     };
-   
-     const handleUpdateStatus = async (orderId: number, status: string) => {
-       try {
-         await ordersApi.updateOrderStatus(orderId, status);
-         await loadOrders(); // Перезагрузить список
-       } catch (error) {
-         console.error('Ошибка обновления статуса:', error);
-       }
-     };
-   
-     const getOrdersByStatus = (status: string) => {
-       return orders.filter(order => order.status === status);
-     };
-   
-     return (
-       <div className="staff-panel">
-         <header className="staff-header">
-           <h1>Панель сотрудника</h1>
-           <div className="staff-filters">
-             <button 
-               className={`filter-btn ${filter === 'all' ? 'active' : ''}`}
-               onClick={() => setFilter('all')}
-             >
-               Все заказы
-             </button>
-             <button 
-               className={`filter-btn ${filter === 'pending' ? 'active' : ''}`}
-               onClick={() => setFilter('pending')}
-             >
-               Ожидают
-             </button>
-             <button 
-               className={`filter-btn ${filter === 'preparing' ? 'active' : ''}`}
-               onClick={() => setFilter('preparing')}
-             >
-               Готовятся
-             </button>
-             <button 
-               className={`filter-btn ${filter === 'ready' ? 'active' : ''}`}
-               onClick={() => setFilter('ready')}
-             >
-               Готовы
-             </button>
-           </div>
-         </header>
-   
-         <div className="orders-columns">
-           <div className="orders-column">
-             <h2 className="column-title">Ожидают ({getOrdersByStatus('pending').length})</h2>
-             <div className="orders-list">
-               {getOrdersByStatus('pending').map(order => (
-                 <OrderCard 
-                   key={order.id} 
-                   order={order}
-                   onUpdateStatus={handleUpdateStatus}
-                 />
-               ))}
-             </div>
-           </div>
-   
-           <div className="orders-column">
-             <h2 className="column-title">Готовятся ({getOrdersByStatus('preparing').length})</h2>
-             <div className="orders-list">
-               {getOrdersByStatus('preparing').map(order => (
-                 <OrderCard 
-                   key={order.id} 
-                   order={order}
-                   onUpdateStatus={handleUpdateStatus}
-                 />
-               ))}
-             </div>
-           </div>
-   
-           <div className="orders-column">
-             <h2 className="column-title">Готовы ({getOrdersByStatus('ready').length})</h2>
-             <div className="orders-list">
-               {getOrdersByStatus('ready').map(order => (
-                 <OrderCard 
-                   key={order.id} 
-                   order={order}
-                   onUpdateStatus={handleUpdateStatus}
-                 />
-               ))}
-             </div>
-           </div>
-         </div>
-       </div>
-     );
-   };
-   ```
-
-5. **Создать стили StaffPanel.css**
-   ```css
-   .staff-panel {
-     width: 100%;
-     min-height: 100vh;
-     background: #f5f5f5;
-   }
-   
-   .staff-header {
-     background: white;
-     padding: var(--spacing-lg);
-     box-shadow: var(--shadow-sm);
-   }
-   
-   .staff-header h1 {
-     font-size: var(--font-size-xl);
-     margin-bottom: var(--spacing-md);
-   }
-   
-   .staff-filters {
-     display: flex;
-     gap: var(--spacing-sm);
-   }
-   
-   .filter-btn {
-     padding: var(--spacing-sm) var(--spacing-md);
-     background: #f5f5f5;
-     border-radius: var(--radius-sm);
-     font-size: var(--font-size-sm);
-     font-weight: 600;
-     transition: all var(--transition-normal);
-   }
-   
-   .filter-btn.active {
-     background: var(--color-primary-red);
-     color: white;
-   }
-   
-   .orders-columns {
-     display: grid;
-     grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-     gap: var(--spacing-lg);
-     padding: var(--spacing-lg);
-   }
-   
-   .orders-column {
-     background: white;
-     border-radius: var(--radius-md);
-     padding: var(--spacing-md);
-     box-shadow: var(--shadow-sm);
-   }
-   
-   .column-title {
-     font-size: var(--font-size-lg);
-     font-weight: 700;
-     margin-bottom: var(--spacing-md);
-     padding-bottom: var(--spacing-sm);
-     border-bottom: 2px solid #e0e0e0;
-   }
-   
-   .orders-list {
-     display: flex;
-     flex-direction: column;
-     gap: var(--spacing-sm);
-   }
-   ```
-
-**✅ Критерий завершения:** Панель сотрудников отображает заказы, можно менять статусы
-
----
-
-## 🔧 Фаза 3: Разработка Backend (серверная часть)
-
-### Задача 3.1: Инициализация order-service
-
-#### Шаги выполнения:
-
-1. **Создать структуру backend/order-service/**
-   ```bash
-   cd backend
-   mkdir -p order-service/src/{routes,models,controllers,utils,config}
-   cd order-service
-   npm init -y
-   ```
-
-2. **Установить зависимости**
-   ```bash
-   npm install fastify @fastify/cors @fastify/env pg
-   npm install -D typescript @types/node @types/pg tsx nodemon
-   ```
-
-3. **Настроить TypeScript tsconfig.json**
-   ```json
-   {
-     "compilerOptions": {
-       "target": "ES2020",
-       "module": "commonjs",
-       "lib": ["ES2020"],
-       "outDir": "./dist",
-       "rootDir": "./src",
-       "strict": true,
-       "esModuleInterop": true,
-       "skipLibCheck": true,
-       "forceConsistentCasingInFileNames": true,
-       "resolveJsonModule": true,
-       "moduleResolution": "node"
-     },
-     "include": ["src/**/*"],
-     "exclude": ["node_modules"]
-   }
-   ```
-
-4. **Настроить scripts в package.json**
-   ```json
-   {
-     "scripts": {
-       "dev": "tsx watch src/server.ts",
-       "build": "tsc",
-       "start": "node dist/server.js"
-     }
-   }
-   ```
-
-**✅ Критерий завершения:** Структура backend создана, зависимости установлены
-
----
-
-### Задача 3.2: Создание подключения к базе данных
-
-#### Шаги выполнения:
-
-1. **Создать src/config/database.ts**
-   ```typescript
-   import { Pool } from 'pg';
-   
-   const pool = new Pool({
-     connectionString: process.env.DATABASE_URL || 'postgresql://aicha_user:aicha_password_dev_only@localhost:5432/aicha_terminal',
-     max: 20,
-     idleTimeoutMillis: 30000,
-     connectionTimeoutMillis: 2000,
-   });
-   
-   pool.on('error', (err) => {
-     console.error('Unexpected error on idle client', err);
-     process.exit(-1);
-   });
-   
-   export const query = (text: string, params?: any[]) => pool.query(text, params);
-   export default pool;
-   ```
-
-2. **Создать модели src/models/Product.ts**
-   ```typescript
-   import { query } from '../config/database';
-   
-   export interface Product {
-     id: number;
-     category_id: number;
-     name_ru: string;
-     name_zh: string;
-     description_ru: string;
-     description_zh: string;
-     price: number;
-     image_url: string;
-     is_available: boolean;
-     created_at: Date;
-     updated_at: Date;
-   }
-   
-   export class ProductModel {
-     static async findAll(): Promise<Product[]> {
-       const result = await query('SELECT * FROM products WHERE is_available = true ORDER BY id');
-       return result.rows;
-     }
-   
-     static async findByCategory(categoryId: number): Promise<Product[]> {
-       const result = await query(
-         'SELECT * FROM products WHERE category_id = $1 AND is_available = true ORDER BY id',
-         [categoryId]
-       );
-       return result.rows;
-     }
-   
-     static async findById(id: number): Promise<Product | null> {
-       const result = await query('SELECT * FROM products WHERE id = $1', [id]);
-       return result.rows[0] || null;
-     }
-   }
-   ```
-
-3. **Создать модель src/models/Category.ts**
-   ```typescript
-   import { query } from '../config/database';
-   
-   export interface Category {
-     id: number;
-     name_ru: string;
-     name_zh: string;
-     slug: string;
-     created_at: Date;
-   }
-   
-   export class CategoryModel {
-     static async findAll(): Promise<Category[]> {
-       const result = await query('SELECT * FROM categories ORDER BY id');
-       return result.rows;
-     }
-   }
-   ```
-
-4. **Создать модель src/models/Order.ts**
-   ```typescript
-   import { query } from '../config/database';
-   
-   export interface Order {
-     id: number;
-     order_number: string;
-     total_amount: number;
-     status: string;
-     payment_method: string;
-     payment_status: string;
-     created_at: Date;
-     updated_at: Date;
-   }
-   
-   export interface OrderItem {
-     id: number;
-     order_id: number;
-     product_id: number;
-     quantity: number;
-     price: number;
-   }
-   
-   export class OrderModel {
-     static async create(totalAmount: number, paymentMethod: string): Promise<Order> {
-       const orderNumber = `AI-${Date.now().toString().slice(-8)}`;
-       const result = await query(
-         `INSERT INTO orders (order_number, total_amount, payment_method, status, payment_status) 
-          VALUES ($1, $2, $3, 'pending', 'paid') 
-          RETURNING *`,
-         [orderNumber, totalAmount, paymentMethod]
-       );
-       return result.rows[0];
-     }
-   
-     static async addItems(orderId: number, items: { productId: number; quantity: number; price: number }[]): Promise<void> {
-       for (const item of items) {
-         await query(
-           'INSERT INTO order_items (order_id, product_id, quantity, price) VALUES ($1, $2, $3, $4)',
-           [orderId, item.productId, item.quantity, item.price]
-         );
-       }
-     }
-   
-     static async findAll(): Promise<Order[]> {
-       const result = await query(`
-         SELECT * FROM orders 
-         WHERE status != 'completed' 
-         ORDER BY created_at DESC
-       `);
-       return result.rows;
-     }
-   
-     static async findByStatus(status: string): Promise<Order[]> {
-       const result = await query(
-         'SELECT * FROM orders WHERE status = $1 ORDER BY created_at DESC',
-         [status]
-       );
-       return result.rows;
-     }
-   
-     static async findById(id: number): Promise<Order | null> {
-       const result = await query('SELECT * FROM orders WHERE id = $1', [id]);
-       return result.rows[0] || null;
-     }
-   
-     static async getOrderItems(orderId: number): Promise<any[]> {
-       const result = await query(`
-         SELECT 
-           oi.*,
-           p.name_ru as product_name_ru,
-           p.name_zh as product_name_zh
-         FROM order_items oi
-         JOIN products p ON oi.product_id = p.id
-         WHERE oi.order_id = $1
-       `, [orderId]);
-       return result.rows;
-     }
-   
-     static async updateStatus(id: number, status: string): Promise<Order> {
-       const result = await query(
-         'UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2 RETURNING *',
-         [status, id]
-       );
-       return result.rows[0];
-     }
-   }
-   ```
-
-**✅ Критерий завершения:** Модели данных созданы, подключение к БД настроено
-
----
-
-### Задача 3.3: Создание API эндпоинтов
-
-#### Шаги выполнения:
-
-1. **Создать роуты для товаров src/routes/products.ts**
-   ```typescript
-   import { FastifyInstance } from 'fastify';
-   import { ProductModel } from '../models/Product';
-   import { CategoryModel } from '../models/Category';
-   
-   export default async function productsRoutes(fastify: FastifyInstance) {
-     // Получить все товары
-     fastify.get('/products', async (request, reply) => {
-       try {
-         const { category_id } = request.query as any;
-         const products = category_id 
-           ? await ProductModel.findByCategory(parseInt(category_id))
-           : await ProductModel.findAll();
-         return products;
-       } catch (error) {
-         reply.code(500).send({ error: 'Failed to fetch products' });
-       }
-     });
-   
-     // Получить товар по ID
-     fastify.get('/products/:id', async (request, reply) => {
-       try {
-         const { id } = request.params as { id: string };
-         const product = await ProductModel.findById(parseInt(id));
-         if (!product) {
-           return reply.code(404).send({ error: 'Product not found' });
-         }
-         return product;
-       } catch (error) {
-         reply.code(500).send({ error: 'Failed to fetch product' });
-       }
-     });
-   
-     // Получить категории
-     fastify.get('/categories', async (request, reply) => {
-       try {
-         const categories = await CategoryModel.findAll();
-         return categories;
-       } catch (error) {
-         reply.code(500).send({ error: 'Failed to fetch categories' });
-       }
-     });
-   }
-   ```
-
-2. **Создать роуты для заказов src/routes/orders.ts**
-   ```typescript
-   import { FastifyInstance } from 'fastify';
-   import { OrderModel } from '../models/Order';
-   
-   export default async function ordersRoutes(fastify: FastifyInstance) {
-     // Получить все заказы
-     fastify.get('/orders', async (request, reply) => {
-       try {
-         const { status } = request.query as any;
-         const orders = status 
-           ? await OrderModel.findByStatus(status)
-           : await OrderModel.findAll();
-         
-         // Добавить items к каждому заказу
-         const ordersWithItems = await Promise.all(
-           orders.map(async (order) => ({
-             ...order,
-             items: await OrderModel.getOrderItems(order.id),
-           }))
-         );
-         
-         return ordersWithItems;
-       } catch (error) {
-         reply.code(500).send({ error: 'Failed to fetch orders' });
-       }
-     });
-   
-     // Создать заказ
-     fastify.post('/orders', async (request, reply) => {
-       try {
-         const { total_amount, payment_method, items } = request.body as any;
-         
-         const order = await OrderModel.create(total_amount, payment_method);
-         await OrderModel.addItems(order.id, items);
-         
-         return order;
-       } catch (error) {
-         reply.code(500).send({ error: 'Failed to create order' });
-       }
-     });
-   
-     // Обновить статус заказа
-     fastify.patch('/orders/:id/status', async (request, reply) => {
-       try {
-         const { id } = request.params as { id: string };
-         const { status } = request.body as any;
-         
-         const order = await OrderModel.updateStatus(parseInt(id), status);
-         return order;
-       } catch (error) {
-         reply.code(500).send({ error: 'Failed to update order status' });
-       }
-     });
-   }
-   ```
-
-3. **Создать главный файл сервера src/server.ts**
-   ```typescript
-   import Fastify from 'fastify';
-   import cors from '@fastify/cors';
-   import productsRoutes from './routes/products';
-   import ordersRoutes from './routes/orders';
-   
-   const fastify = Fastify({
-     logger: true,
-   });
-   
-   // Регистрация CORS
-   fastify.register(cors, {
-     origin: true, // В продакшене указать конкретный домен
-   });
-   
-   // Регистрация роутов
-   fastify.register(productsRoutes, { prefix: '/api' });
-   fastify.register(ordersRoutes, { prefix: '/api' });
-   
-   // Health check
-   fastify.get('/health', async () => {
-     return { status: 'ok' };
-   });
-   
-   // Запуск сервера
-   const start = async () => {
-     try {
-       await fastify.listen({ port: 8080, host: '0.0.0.0' });
-       console.log('Server listening on http://localhost:8080');
-     } catch (err) {
-       fastify.log.error(err);
-       process.exit(1);
-     }
-   };
-   
-   start();
-   ```
-
-4. **Запустить backend в режиме разработки**
-   ```bash
-   cd backend/order-service
-   npm run dev
-   ```
-
-**✅ Критерий завершения:** Backend запущен, API эндпоинты работают
-
----
-
-### Задача 3.4: Настройка Docker Compose для всей системы
-
-#### Шаги выполнения:
-
-1. **Создать Dockerfile для frontend**
-   ```dockerfile
-   FROM node:20-alpine as build
-   
-   WORKDIR /app
-   COPY package*.json ./
-   RUN npm ci
-   COPY . .
-   RUN npm run build
-   
-   FROM nginx:alpine
-   COPY --from=build /app/dist /usr/share/nginx/html
-   COPY nginx.conf /etc/nginx/nginx.conf
-   EXPOSE 80
-   CMD ["nginx", "-g", "daemon off;"]
-   ```
-
-2. **Создать Dockerfile для backend**
-   ```dockerfile
-   FROM node:20-alpine
-   
-   WORKDIR /app
-   COPY package*.json ./
-   RUN npm ci
-   COPY . .
-   RUN npm run build
-   
-   EXPOSE 8080
-   CMD ["node", "dist/server.js"]
-   ```
-
-3. **Обновить docker-compose.yml для всех сервисов**
-   ```yaml
-   version: '3.8'
-   
-   services:
-     postgres:
-       image: postgres:15-alpine
-       container_name: aicha-postgres
-       environment:
-         POSTGRES_DB: aicha_terminal
-         POSTGRES_USER: aicha_user
-         POSTGRES_PASSWORD: aicha_password_dev_only
-       ports:
-         - "5432:5432"
-       volumes:
-         - postgres_data:/var/lib/postgresql/data
-         - ./database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
-       networks:
-         - aicha-network
-       healthcheck:
-         test: ["CMD-SHELL", "pg_isready -U aicha_user -d aicha_terminal"]
-         interval: 10s
-         timeout: 5s
-         retries: 5
-   
-     redis:
-       image: redis:7-alpine
-       container_name: aicha-redis
-       ports:
-         - "6379:6379"
-       networks:
-         - aicha-network
-   
-     backend:
-       build:
-         context: ./backend/order-service
-         dockerfile: Dockerfile
-       container_name: aicha-backend
-       environment:
-         DATABASE_URL: postgresql://aicha_user:aicha_password_dev_only@postgres:5432/aicha_terminal
-       ports:
-         - "8080:8080"
-       depends_on:
-         postgres:
-           condition: service_healthy
-       networks:
-         - aicha-network
-   
-     frontend:
-       build:
-         context: ./frontend
-         dockerfile: Dockerfile
-       container_name: aicha-frontend
-       ports:
-         - "3000:80"
-       depends_on:
-         - backend
-       networks:
-         - aicha-network
-   
-   volumes:
-     postgres_data:
-   
-   networks:
-     aicha-network:
-       driver: bridge
-   ```
-
-4. **Запустить всю систему**
-   ```bash
-   docker-compose up --build
-   ```
-
-**✅ Критерий завершения:** Вся система запущена в Docker, frontend доступен на localhost:3000
-
----
-
-## 🧪 Фаза 4: Тестирование базовой части
-
-### Задача 4.1: Ручное тестирование функциональности
-
-#### Чек-лист тестирования:
-
-**Навигация:**
-- [ ] Приветственный экран отображается корректно
-- [ ] Переход на экран выбора режима работает
-- [ ] Кнопка "Обычный заказ" ведет в меню
-- [ ] Навигация между страницами плавная
-
-**Каталог товаров:**
-- [ ] Товары загружаются из базы данных
-- [ ] Категории отображаются и фильтруют товары
-- [ ] Карточки товаров показывают всю информацию
-- [ ] Двуязычность работает (русский + китайский)
-
-**Корзина:**
-- [ ] Товары добавляются в корзину
-- [ ] Количество можно изменять
-- [ ] Товары можно удалять
-- [ ] Итоговая сумма рассчитывается правильно
-
-**Оплата:**
-- [ ] Все способы оплаты отображаются
-- [ ] Заглушка "успешной оплаты" работает
-- [ ] Корзина очищается после оплаты
-
-**Оценка сервиса:**
-- [ ] Звезды интерактивны
-- [ ] Оценка отправляется
-- [ ] Возврат на главную работает
-
-**Панель сотрудников:**
-- [ ] Заказы отображаются
-- [ ] Фильтрация по статусам работает
-- [ ] Статусы заказов обновляются
-- [ ] Real-time обновления работают
-
-**Backend API:**
-- [ ] GET /api/products возвращает товары
-- [ ] GET /api/categories возвращает категории
-- [ ] POST /api/orders создает заказ
-- [ ] PATCH /api/orders/:id/status обновляет статус
-
----
-
-## 📊 Завершение базовой части
-
-### Что было реализовано:
-
-✅ **Frontend (клиентская часть):**
-- Все страницы пользовательского интерфейса
-- Роутинг и навигация
-- Управление состоянием (корзина)
-- Двуязычный интерфейс
-- Адаптивный дизайн
-
-✅ **Backend (серверная часть):**
-- REST API для товаров и заказов
-- Подключение к PostgreSQL
-- Модели данных
-- Роуты и контроллеры
-
-✅ **База данных:**
-- Схема таблиц
-- Начальные данные
-- Миграции
-
-✅ **Инфраструктура:**
-- Docker Compose настройка
-- Контейнеризация сервисов
-- Панель для сотрудников
-
-### Что НЕ реализовано (будет в следующих частях):
-
-❌ AI-диалог и голосовое взаимодействие
-❌ Речевые технологии (STT/TTS)
-❌ Анализ предпочтений и рекомендации
-❌ Реальная система оплаты
-❌ Оптимизация для Orange Pi
-❌ Финальное тестирование на оборудовании
-
----
-
-## 🎯 Следующие шаги
-
-После завершения базовой части переходите к документу **DevelopmentPlan_AI.md**, где будет описана интеграция:
-- Yandex SpeechKit для распознавания и синтеза речи
-- OpenAI GPT-4o или Llama-3 для AI-диалогов
-- Анализ настроения и подбор товаров
-- WebSocket для real-time коммуникации
-- Обработка аудио потоков
-
----
-
-**Версия документа:** 1.0  
-**Дата создания:** 7 ноября 2024  
-**Статус:** Готово для начала разработки базовой части

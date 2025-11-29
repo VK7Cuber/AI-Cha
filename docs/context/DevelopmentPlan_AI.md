@@ -1,1553 +1,1760 @@
-# 🤖 План разработки AI-Cha Terminal - Интеграция AI и голосовых технологий
+# План разработки AI-части AI-Cha Terminal
 
-## 🎯 Цель этапа
+## 1. Описание этапа разработки
 
-Интегрировать AI-агента и голосовые технологии в существующую базовую систему для реализации персонализированного подбора товаров через голосовой диалог с пользователем.
+### 1.1. Суть AI-этапа
+AI-этап разработки включает интеграцию искусственного интеллекта и голосовых технологий в терминал AI-Cha. На данном этапе реализуется голосовой диалог с клиентом, анализ его предпочтений, настроения и вкусов, а также интеллектуальный подбор товаров на основе беседы.
 
-**Ожидаемый результат:** Полностью функциональный AI-диалог с распознаванием речи, анализом предпочтений и автоматической генерацией персонализированных рекомендаций напитков.
+### 1.2. Границы этапа
 
-**Время выполнения:** 3-4 недели
+**Включено:**
+- Интеграция Speech-to-Text (распознавание речи)
+- Интеграция Text-to-Speech (синтез речи)
+- Подключение AI-модели для ведения диалога
+- Разработка промптов и системных инструкций для AI
+- Логика анализа ответов пользователя
+- Алгоритм подбора товаров на основе диалога
+- Экран AI-диалога с визуализацией
+- Экран результатов подбора с обоснованиями
+- Кэширование голосовых фраз для оптимизации
+- Обработка пауз и прерываний диалога
 
-**Предварительные требования:** Завершена базовая часть из DevelopmentPlan_Base.md
+**Исключено (уже реализовано на базовом этапе):**
+- Базовый интерфейс терминала
+- Каталог товаров и корзина
+- Система заказов и оплаты
+- Панель сотрудников
 
----
+**Предусловия:**
+- Базовая часть проекта полностью реализована и протестирована
+- База данных с товарами заполнена
+- Backend API работает стабильно
 
-## 📦 Фаза 1: Подготовка и получение API ключей
-
-### Задача 1.1: Регистрация в Yandex Cloud и получение ключей SpeechKit
-
-> **⚠️ ТОЧКА ОСТАНОВКИ ДЛЯ ПОЛЬЗОВАТЕЛЯ:**
-> Вам нужно зарегистрироваться в Yandex Cloud и получить доступ к SpeechKit API.
-
-#### Шаги выполнения:
-
-1. **Регистрация в Yandex Cloud**
-   - Перейти на https://cloud.yandex.ru/
-   - Зарегистрироваться или войти с существующим аккаунтом Яндекса
-   - Активировать пробный период (дается 1000₽ на тестирование)
-
-2. **Создание сервисного аккаунта**
-   - Создать новый проект (Folder)
-   - В разделе "Управление доступом" создать сервисный аккаунт
-   - Назначить роли: `editor` и `speechkit-user`
-   - Создать API-ключ для сервисного аккаунта
-   - **Сохранить ключи:** API Key, Folder ID
-
-3. **Получение данных для подключения**
-   Вам понадобится:
-   - `YANDEX_API_KEY` - ключ для аутентификации
-   - `YANDEX_FOLDER_ID` - ID вашего folder/проекта
-   
-   Пример:
-   ```
-   YANDEX_API_KEY=AQVNabcdefghijklmnopqrstuvwxyz1234567890
-   YANDEX_FOLDER_ID=b1g123abc456def789
-   ```
-
-4. **Тестирование доступа**
-   ```bash
-   curl -X POST \
-     -H "Authorization: Api-Key ${YANDEX_API_KEY}" \
-     -d '{"folderId": "${YANDEX_FOLDER_ID}", "text": "Привет, это тест"}' \
-     https://tts.api.cloud.yandex.net/speech/v1/tts:synthesize
-   ```
-   
-   Если всё настроено правильно, вернется аудио-файл.
-
-**✅ Критерий завершения:** Получены и сохранены YANDEX_API_KEY и YANDEX_FOLDER_ID
+### 1.3. Целевой результат
+Полностью функциональный AI-агент, способный вести естественный диалог с клиентом на русском языке, анализировать его ответы и подбирать персонализированные рекомендации напитков. Латентность диалога не более 500-800ms для комфортного взаимодействия.
 
 ---
 
-### Задача 1.2: Регистрация в OpenAI и получение API ключа
+## 2. Архитектура AI-компонентов
 
-> **⚠️ ТОЧКА ОСТАНОВКИ ДЛЯ ПОЛЬЗОВАТЕЛЯ:**
-> Вам нужно зарегистрироваться в OpenAI и получить API ключ.
+### 2.1. Дополнение структуры проекта
 
-#### Шаги выполнения:
+```
+AI-Cha/
+│
+├── backend/
+│   ├── src/
+│   │   ├── ai/                             # AI-сервисы (новая папка)
+│   │   │   ├── services/
+│   │   │   │   ├── dialogService.js       # Управление диалогом
+│   │   │   │   ├── sttService.js          # Speech-to-Text
+│   │   │   │   ├── ttsService.js          # Text-to-Speech
+│   │   │   │   ├── aiModelService.js      # Работа с AI-моделью
+│   │   │   │   ├── analysisService.js     # Анализ ответов пользователя
+│   │   │   │   └── recommendationService.js # Подбор товаров
+│   │   │   │
+│   │   │   ├── prompts/
+│   │   │   │   ├── systemPrompt.js        # Системный промпт для AI
+│   │   │   │   ├── questionTemplates.js   # Шаблоны вопросов
+│   │   │   │   └── analysisPrompts.js     # Промпты для анализа
+│   │   │   │
+│   │   │   ├── models/
+│   │   │   │   ├── DialogSession.js       # Модель сессии диалога
+│   │   │   │   ├── UserProfile.js         # Профиль пользователя из диалога
+│   │   │   │   └── Recommendation.js      # Рекомендации с обоснованиями
+│   │   │   │
+│   │   │   ├── utils/
+│   │   │   │   ├── audioProcessor.js      # Обработка аудио
+│   │   │   │   ├── sentimentAnalyzer.js   # Анализ эмоций
+│   │   │   │   └── cacheManager.js        # Кэширование TTS
+│   │   │   │
+│   │   │   └── config/
+│   │   │       ├── aiConfig.js            # Конфигурация AI
+│   │   │       ├── sttConfig.js           # Конфигурация STT
+│   │   │       └── ttsConfig.js           # Конфигурация TTS
+│   │   │
+│   │   └── api/
+│   │       └── routes/
+│   │           ├── dialog.js              # API для диалога
+│   │           ├── audio.js               # API для аудио
+│   │           └── recommendations.js     # API для рекомендаций
+│
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   │   └── screens/
+│   │   │       ├── AIDialogScreen/        # Экран AI-диалога (новый)
+│   │   │       └── AIRecommendationsScreen/ # Результаты AI (обновленный)
+│   │   │
+│   │   ├── services/
+│   │   │   ├── audioService.ts            # Работа с микрофоном
+│   │   │   ├── dialogService.ts           # API диалога
+│   │   │   └── webSocketService.ts        # WebSocket для аудио
+│   │   │
+│   │   └── hooks/
+│   │       ├── useAudioRecorder.ts        # Запись аудио
+│   │       ├── useDialog.ts               # Управление диалогом
+│   │       └── useVoiceActivity.ts        # Voice Activity Detection
+```
 
-1. **Регистрация в OpenAI**
-   - Перейти на https://platform.openai.com/
-   - Зарегистрироваться или войти в аккаунт
-   - Перейти в раздел API Keys
+### 2.2. Архитектура голосового взаимодействия
 
-2. **Создание API ключа**
-   - Нажать "Create new secret key"
-   - Дать ключу понятное имя: "AI-Cha Terminal Dev"
-   - **ВАЖНО:** Скопировать и сохранить ключ сразу (он больше не отобразится)
+**Поток данных (тонкий клиент):**
 
-3. **Пополнение баланса (если требуется)**
-   - Перейти в раздел Billing
-   - Добавить способ оплаты
-   - Для тестирования достаточно $5-10
-   - GPT-4o стоит примерно $0.005 за 1000 токенов (очень дешево для диалогов)
+1. **Терминал (Orange Pi):**
+   - Захват аудио с микрофона через Web Audio API
+   - Стриминг аудио на сервер через WebSocket (Opus 16kHz)
+   - Получение синтезированной речи от сервера
+   - Воспроизведение через динамики
 
-4. **Получение ключа**
-   Вам понадобится:
-   - `OPENAI_API_KEY` - ключ для аутентификации
-   
-   Пример:
-   ```
-   OPENAI_API_KEY=sk-proj-abc123def456ghi789jkl012mno345pqr678stu901vwx234yzA
-   ```
+2. **Сервер (мощный ПК в кафе):**
+   - Прием аудио стрима от терминала
+   - Отправка на Yandex SpeechKit STT (gRPC streaming)
+   - Получение распознанного текста
+   - Отправка текста в AI-модель (GPT-4o или Llama-3)
+   - Получение ответа от AI
+   - Синтез речи через Yandex SpeechKit TTS
+   - Отправка аудио обратно на терминал
 
-5. **Тестирование доступа**
-   ```bash
-   curl https://api.openai.com/v1/chat/completions \
-     -H "Content-Type: application/json" \
-     -H "Authorization: Bearer $OPENAI_API_KEY" \
-     -d '{
-       "model": "gpt-4o",
-       "messages": [{"role": "user", "content": "Привет!"}]
-     }'
-   ```
-
-**✅ Критерий завершения:** Получен и сохранен OPENAI_API_KEY
-
----
-
-### Задача 1.3: Сохранение ключей в переменных окружения
-
-#### Шаги выполнения:
-
-1. **Создать файл .env в корне проекта**
-   ```env
-   # Yandex SpeechKit
-   YANDEX_API_KEY=ваш_api_key_от_yandex
-   YANDEX_FOLDER_ID=ваш_folder_id
-   
-   # OpenAI
-   OPENAI_API_KEY=ваш_api_key_от_openai
-   OPENAI_MODEL=gpt-4o
-   
-   # Database (уже должно быть из базовой части)
-   DATABASE_URL=postgresql://aicha_user:aicha_password_dev_only@localhost:5432/aicha_terminal
-   ```
-
-2. **Добавить .env в .gitignore (если еще не добавлено)**
-   ```gitignore
-   .env
-   .env.local
-   .env.*.local
-   ```
-
-3. **Создать .env.example для других разработчиков**
-   ```env
-   # Yandex SpeechKit
-   YANDEX_API_KEY=your_yandex_api_key_here
-   YANDEX_FOLDER_ID=your_folder_id_here
-   
-   # OpenAI
-   OPENAI_API_KEY=your_openai_api_key_here
-   OPENAI_MODEL=gpt-4o
-   
-   # Database
-   DATABASE_URL=postgresql://aicha_user:aicha_password_dev_only@localhost:5432/aicha_terminal
-   ```
-
-**✅ Критерий завершения:** Все API ключи сохранены в .env
-
----
-
-## 🎤 Фаза 2: Интеграция голосовых технологий
-
-### Задача 2.1: Создание AI Dialog Service (микросервис для AI)
-
-#### Шаги выполнения:
-
-1. **Создать структуру ai-dialog-service**
-   ```bash
-   cd backend
-   mkdir -p ai-dialog-service/src/{routes,services,utils,config,types}
-   cd ai-dialog-service
-   npm init -y
-   ```
-
-2. **Установить зависимости**
-   ```bash
-   # Основные
-   npm install fastify @fastify/cors @fastify/websocket
-   npm install openai axios form-data
-   
-   # Dev зависимости
-   npm install -D typescript @types/node tsx nodemon
-   ```
-
-3. **Настроить TypeScript**
-   Создать `tsconfig.json`:
-   ```json
-   {
-     "compilerOptions": {
-       "target": "ES2020",
-       "module": "commonjs",
-       "lib": ["ES2020"],
-       "outDir": "./dist",
-       "rootDir": "./src",
-       "strict": true,
-       "esModuleInterop": true,
-       "skipLibCheck": true,
-       "resolveJsonModule": true,
-       "moduleResolution": "node"
-     },
-     "include": ["src/**/*"],
-     "exclude": ["node_modules"]
-   }
-   ```
-
-4. **Настроить scripts в package.json**
-   ```json
-   {
-     "scripts": {
-       "dev": "tsx watch src/server.ts",
-       "build": "tsc",
-       "start": "node dist/server.js"
-     }
-   }
-   ```
-
-**✅ Критерий завершения:** Структура ai-dialog-service создана
+**Преимущества архитектуры:**
+- Минимальная нагрузка на Orange Pi
+- Быстрая обработка (все на мощном сервере)
+- Возможность кэширования
+- Централизованное обновление AI-логики
 
 ---
 
-### Задача 2.2: Реализация Speech-to-Text (распознавание речи)
+## 3. Технологический стек AI-компонентов
 
-#### Шаги выполнения:
+### 3.1. Speech-to-Text (STT)
 
-1. **Создать сервис для Yandex STT src/services/speech/sttService.ts**
-   ```typescript
-   import axios from 'axios';
-   import FormData from 'form-data';
-   import { Buffer } from 'buffer';
-   
-   export class SpeechToTextService {
-     private apiKey: string;
-     private folderId: string;
-     private apiUrl = 'https://stt.api.cloud.yandex.net/speech/v1/stt:recognize';
-   
-     constructor(apiKey: string, folderId: string) {
-       this.apiKey = apiKey;
-       this.folderId = folderId;
-     }
-   
-     /**
-      * Распознать речь из аудио буфера
-      * @param audioBuffer - буфер с аудио данными (OGG Opus или WAV)
-      * @returns Распознанный текст
-      */
-     async recognize(audioBuffer: Buffer): Promise<string> {
-       try {
-         const formData = new FormData();
-         formData.append('audio', audioBuffer, {
-           filename: 'audio.ogg',
-           contentType: 'audio/ogg',
-         });
-   
-         const response = await axios.post(this.apiUrl, formData, {
-           headers: {
-             'Authorization': `Api-Key ${this.apiKey}`,
-             ...formData.getHeaders(),
-           },
-           params: {
-             folderId: this.folderId,
-             lang: 'ru-RU',
-             format: 'oggopus',
-             sampleRateHertz: 48000,
-           },
-         });
-   
-         return response.data.result || '';
-       } catch (error: any) {
-         console.error('STT Error:', error.response?.data || error.message);
-         throw new Error('Failed to recognize speech');
-       }
-     }
-   
-     /**
-      * Распознать речь с использованием streaming API (для real-time)
-      * Примечание: Требует gRPC подключения
-      */
-     async recognizeStreaming(audioStream: ReadableStream): Promise<string> {
-       // TODO: Реализовать streaming через gRPC
-       // Пока используем обычный метод
-       throw new Error('Streaming not implemented yet');
-     }
-   }
-   
-   // Singleton экземпляр
-   export const sttService = new SpeechToTextService(
-     process.env.YANDEX_API_KEY || '',
-     process.env.YANDEX_FOLDER_ID || ''
-   );
-   ```
+**Выбранное решение: Yandex SpeechKit**
 
-2. **Создать роут для STT src/routes/speech.ts**
-   ```typescript
-   import { FastifyInstance, FastifyRequest } from 'fastify';
-   import { sttService } from '../services/speech/sttService';
-   
-   interface RecognizeBody {
-     audio: string; // Base64 encoded audio
-   }
-   
-   export default async function speechRoutes(fastify: FastifyInstance) {
-     // Эндпоинт для распознавания речи
-     fastify.post('/speech/recognize', async (request: FastifyRequest<{ Body: RecognizeBody }>, reply) => {
-       try {
-         const { audio } = request.body;
-         
-         if (!audio) {
-           return reply.code(400).send({ error: 'Audio data required' });
-         }
-   
-         // Декодировать base64 в буфер
-         const audioBuffer = Buffer.from(audio, 'base64');
-         
-         // Распознать речь
-         const text = await sttService.recognize(audioBuffer);
-         
-         return { text };
-       } catch (error: any) {
-         fastify.log.error(error);
-         return reply.code(500).send({ error: error.message });
-       }
-     });
-   }
-   ```
+**Обоснование выбора:**
+- Отличное качество распознавания русского языка
+- Поддержка потокового распознавания (streaming)
+- Низкая латентность (<300ms)
+- gRPC API для высокой производительности
+- Поддержка Voice Activity Detection
 
-**✅ Критерий завершения:** STT сервис создан и работает
+**Альтернативы (на будущее):**
+- Google Cloud Speech-to-Text
+- Whisper от OpenAI (локально)
+- Vosk (оффлайн, но более низкое качество)
+
+### 3.2. Text-to-Speech (TTS)
+
+**Выбранное решение: Yandex SpeechKit**
+
+**Обоснование выбора:**
+- Естественное звучание голоса
+- Поддержка эмоциональной окраски
+- Быстрая генерация
+- Выбор женского/мужского голоса
+- Поддержка SSML для управления интонацией
+
+**Параметры синтеза:**
+- Голос: женский, дружелюбный (alena или filipp)
+- Скорость: 1.0 (нормальная)
+- Эмоция: neutral / friendly
+- Формат: OGG Opus (для меньшего размера)
+
+### 3.3. AI-модель для диалога
+
+**Основной вариант: OpenAI GPT-4o**
+
+**Обоснование:**
+- Высокое качество генерации диалога
+- Понимание контекста беседы
+- Способность к эмоциональному анализу
+- Быстрые ответы
+- API с хорошей документацией
+
+**Параметры:**
+- Model: gpt-4o
+- Temperature: 0.7 (баланс между креативностью и предсказуемостью)
+- Max tokens: 150 (для коротких реплик)
+- Presence penalty: 0.6 (разнообразие вопросов)
+
+**Альтернатива: Llama-3 8B (локальная)**
+
+**Обоснование для будущего использования:**
+- Работает на сервере без интернета
+- Нет затрат на API
+- Полный контроль над данными
+- Квантизация Q4 для экономии памяти
+
+**Требования к серверу для Llama-3:**
+- RAM: минимум 8GB для модели
+- CPU: мощный для inference
+- Латентность: 2-5 секунд (выше чем GPT-4o)
+
+### 3.4. Дополнительные технологии
+
+**Аудио обработка:**
+- **Opus codec** - сжатие аудио для стриминга
+- **Web Audio API** - захват микрофона в браузере
+- **WebSocket** - потоковая передача аудио
+
+**Кэширование:**
+- **Redis** - кэш синтезированных фраз
+- TTL: 24 часа для типовых фраз
+- Размер кэша: до 100 наиболее частых фраз
 
 ---
 
-### Задача 2.3: Реализация Text-to-Speech (синтез речи)
+## 4. Разработка моделей данных для AI
 
-#### Шаги выполнения:
+### 4.1. Новые таблицы в БД
 
-1. **Создать сервис для Yandex TTS src/services/speech/ttsService.ts**
-   ```typescript
-   import axios from 'axios';
-   import { Buffer } from 'buffer';
-   
-   export interface TTSOptions {
-     voice?: string; // Голос: 'alena', 'filipp', 'jane', 'omazh'
-     emotion?: string; // Эмоция: 'neutral', 'good', 'evil'
-     speed?: number; // Скорость: 0.1 - 3.0
-     format?: string; // Формат: 'oggopus', 'mp3'
-   }
-   
-   export class TextToSpeechService {
-     private apiKey: string;
-     private folderId: string;
-     private apiUrl = 'https://tts.api.cloud.yandex.net/speech/v1/tts:synthesize';
-     private cache: Map<string, Buffer> = new Map();
-   
-     constructor(apiKey: string, folderId: string) {
-       this.apiKey = apiKey;
-       this.folderId = folderId;
-     }
-   
-     /**
-      * Синтезировать речь из текста
-      */
-     async synthesize(text: string, options: TTSOptions = {}): Promise<Buffer> {
-       // Проверяем кэш
-       const cacheKey = this.getCacheKey(text, options);
-       if (this.cache.has(cacheKey)) {
-         console.log('TTS: Using cached audio');
-         return this.cache.get(cacheKey)!;
-       }
-   
-       try {
-         const params = new URLSearchParams({
-           text,
-           folderId: this.folderId,
-           lang: 'ru-RU',
-           voice: options.voice || 'alena', // Женский голос по умолчанию
-           emotion: options.emotion || 'good',
-           speed: String(options.speed || 1.0),
-           format: options.format || 'oggopus',
-         });
-   
-         const response = await axios.post(
-           this.apiUrl,
-           params.toString(),
-           {
-             headers: {
-               'Authorization': `Api-Key ${this.apiKey}`,
-               'Content-Type': 'application/x-www-form-urlencoded',
-             },
-             responseType: 'arraybuffer',
-           }
-         );
-   
-         const audioBuffer = Buffer.from(response.data);
-         
-         // Кэшируем результат
-         this.cache.set(cacheKey, audioBuffer);
-         
-         return audioBuffer;
-       } catch (error: any) {
-         console.error('TTS Error:', error.response?.data || error.message);
-         throw new Error('Failed to synthesize speech');
-       }
-     }
-   
-     /**
-      * Предзагрузить часто используемые фразы в кэш
-      */
-     async preloadCommonPhrases(phrases: string[]) {
-       console.log('TTS: Preloading common phrases...');
-       await Promise.all(
-         phrases.map(phrase => this.synthesize(phrase))
-       );
-       console.log(`TTS: Preloaded ${phrases.length} phrases`);
-     }
-   
-     private getCacheKey(text: string, options: TTSOptions): string {
-       return `${text}_${options.voice}_${options.emotion}_${options.speed}`;
-     }
-   
-     /**
-      * Очистить кэш
-      */
-     clearCache() {
-       this.cache.clear();
-     }
-   }
-   
-   export const ttsService = new TextToSpeechService(
-     process.env.YANDEX_API_KEY || '',
-     process.env.YANDEX_FOLDER_ID || ''
-   );
-   ```
+#### Таблица: **dialog_sessions**
+Сессии диалогов с AI
+- `id` (PK, UUID) - уникальный идентификатор сессии
+- `terminal_id` (VARCHAR) - терминал, на котором происходил диалог
+- `status` (ENUM) - in_progress/completed/interrupted/failed
+- `language` (VARCHAR) - язык диалога (по умолчанию 'ru')
+- `started_at` (TIMESTAMP) - время начала
+- `completed_at` (TIMESTAMP) - время завершения
+- `duration_seconds` (INTEGER) - длительность диалога
+- `questions_asked` (INTEGER) - количество заданных вопросов
+- `user_responses_count` (INTEGER) - количество ответов пользователя
 
-2. **Добавить TTS роут в src/routes/speech.ts**
-   ```typescript
-   // Добавить в существующий файл
-   
-   interface SynthesizeBody {
-     text: string;
-     voice?: string;
-     emotion?: string;
-   }
-   
-   // Эндпоинт для синтеза речи
-   fastify.post('/speech/synthesize', async (request: FastifyRequest<{ Body: SynthesizeBody }>, reply) => {
-     try {
-       const { text, voice, emotion } = request.body;
-       
-       if (!text) {
-         return reply.code(400).send({ error: 'Text required' });
-       }
-   
-       const audioBuffer = await ttsService.synthesize(text, { voice, emotion });
-       
-       // Возвращаем аудио как base64
-       return {
-         audio: audioBuffer.toString('base64'),
-         format: 'oggopus',
-       };
-     } catch (error: any) {
-       fastify.log.error(error);
-       return reply.code(500).send({ error: error.message });
-     }
-   });
-   ```
+#### Таблица: **dialog_messages**
+Сообщения в диалоге
+- `id` (PK, UUID)
+- `session_id` (FK → dialog_sessions.id)
+- `role` (ENUM) - assistant/user
+- `content` (TEXT) - текст сообщения
+- `audio_duration_ms` (INTEGER) - длительность аудио
+- `stt_confidence` (FLOAT) - уверенность распознавания (0-1)
+- `created_at` (TIMESTAMP)
 
-3. **Предзагрузить частые фразы при старте сервера**
-   Добавить в `src/server.ts`:
-   ```typescript
-   import { ttsService } from './services/speech/ttsService';
-   
-   // После инициализации Fastify
-   const commonPhrases = [
-     'Здравствуйте! Как дела, как настроение?',
-     'Понимаю... А что расстроило? Работа, погода?',
-     'Отлично! Рады вас видеть!',
-     'Какой чай вы предпочитаете: крепкий или легкий?',
-     'Я подобрал для вас несколько вариантов!',
-     'Спасибо за заказ!',
-   ];
-   
-   // Предзагрузить при старте (в фоне)
-   ttsService.preloadCommonPhrases(commonPhrases).catch(console.error);
-   ```
+#### Таблица: **user_profiles**
+Профили пользователей из диалогов
+- `id` (PK, UUID)
+- `session_id` (FK → dialog_sessions.id)
+- `mood` (VARCHAR) - настроение (happy/sad/tired/energetic/neutral)
+- `mood_confidence` (FLOAT) - уверенность определения настроения
+- `preferences` (JSONB) - предпочтения {sweet, bitter, strong, light и т.д.}
+- `context` (JSONB) - контекст {alone, with_friends, time_of_day и т.д.}
+- `experience_level` (VARCHAR) - опыт с чаем (beginner/enthusiast/expert)
+- `cultural_background` (VARCHAR) - культурный бэкграунд
+- `created_at` (TIMESTAMP)
 
-**✅ Критерий завершения:** TTS сервис создан, кэш работает
+#### Таблица: **ai_recommendations**
+Рекомендации от AI
+- `id` (PK, UUID)
+- `session_id` (FK → dialog_sessions.id)
+- `profile_id` (FK → user_profiles.id)
+- `product_id` (FK → products.id)
+- `reasoning` (TEXT) - обоснование рекомендации
+- `confidence_score` (FLOAT) - уверенность рекомендации (0-1)
+- `position` (INTEGER) - порядок в списке (1-6)
+- `was_added_to_cart` (BOOLEAN) - был ли добавлен в корзину
+- `created_at` (TIMESTAMP)
+
+#### Таблица: **tts_cache**
+Кэш синтезированных фраз
+- `id` (PK, UUID)
+- `text_hash` (VARCHAR, UNIQUE) - хеш текста для быстрого поиска
+- `text_content` (TEXT) - оригинальный текст
+- `audio_data` (BYTEA) - аудио данные
+- `audio_format` (VARCHAR) - формат (opus/mp3)
+- `voice_name` (VARCHAR) - имя голоса
+- `duration_ms` (INTEGER) - длительность
+- `hits_count` (INTEGER) - количество использований
+- `last_used_at` (TIMESTAMP)
+- `created_at` (TIMESTAMP)
+
+### 4.2. Индексы для оптимизации
+
+- `dialog_sessions(terminal_id, started_at)`
+- `dialog_sessions(status, started_at)`
+- `dialog_messages(session_id, created_at)`
+- `user_profiles(session_id)`
+- `ai_recommendations(session_id, position)`
+- `ai_recommendations(product_id)`
+- `tts_cache(text_hash)`
+- `tts_cache(last_used_at)` - для очистки старого кэша
 
 ---
 
-## 🧠 Фаза 3: Интеграция AI-агента для диалогов
+## 5. Пошаговый план разработки AI-части
 
-### Задача 3.1: Создание OpenAI клиента и промптов
+### Этап 1: Подготовка AI-инфраструктуры (3-4 дня)
 
-#### Шаги выполнения:
+#### 1.1. Получение и настройка API ключей
+**Задача:** Настроить доступ ко всем внешним сервисам
 
-1. **Создать сервис для OpenAI src/services/ai/openaiService.ts**
-   ```typescript
-   import OpenAI from 'openai';
-   
-   export interface Message {
-     role: 'system' | 'user' | 'assistant';
-     content: string;
-   }
-   
-   export interface DialogContext {
-     messages: Message[];
-     userData?: {
-       mood?: string;
-       preferences?: string[];
-       timeOfDay?: string;
-     };
-   }
-   
-   export class OpenAIService {
-     private client: OpenAI;
-     private model: string;
-   
-     constructor(apiKey: string, model: string = 'gpt-4o') {
-       this.client = new OpenAI({ apiKey });
-       this.model = model;
-     }
-   
-     /**
-      * Получить system prompt для AI-бариста
-      */
-     private getSystemPrompt(): string {
-       return `Ты - дружелюбный AI-бариста в русско-китайском чайном кафе "AI Cha".
-   
-   Твоя задача - помочь клиенту выбрать идеальный напиток через непринужденную беседу.
-   
-   ПРАВИЛА:
-   1. Говори тепло, по-дружески, но профессионально
-   2. Задавай короткие, естественные вопросы (1-2 предложения)
-   3. Не перечисляй все товары сразу
-   4. Адаптируйся к настроению клиента
-   5. Учитывай время суток, погоду, ситуацию
-   6. После 3-5 вопросов делай рекомендацию
-   7. Используй знания о чайной культуре
-   
-   ДОСТУПНЫЕ КАТЕГОРИИ НАПИТКОВ:
-   - Зеленый чай (бодрящий, легкий)
-   - Черный чай (крепкий, согревающий)
-   - Улун (баланс, аромат)
-   - Пуэр (глубокий вкус, для ценителей)
-   - Кофейные напитки (энергия)
-   - Холодные напитки (освежают)
-   - Травяные чаи (успокаивают)
-   
-   СТИЛЬ ОБЩЕНИЯ:
-   - Используй эмодзи умеренно
-   - Будь искренним
-   - Не используй формальные обращения
-   - Говори как опытный друг-бариста
-   
-   Начинай диалог с приветствия и вопроса о настроении.`;
-     }
-   
-     /**
-      * Начать новый диалог
-      */
-     async startDialog(): Promise<{ message: string; context: DialogContext }> {
-       const context: DialogContext = {
-         messages: [
-           {
-             role: 'system',
-             content: this.getSystemPrompt(),
-           },
-         ],
-       };
-   
-       const greeting = await this.getResponse(context, 'Начни диалог с клиентом');
-       
-       context.messages.push({
-         role: 'assistant',
-         content: greeting,
-       });
-   
-       return { message: greeting, context };
-     }
-   
-     /**
-      * Продолжить диалог
-      */
-     async continueDialog(
-       context: DialogContext,
-       userMessage: string
-     ): Promise<{ message: string; context: DialogContext; shouldRecommend: boolean }> {
-       // Добавить сообщение пользователя
-       context.messages.push({
-         role: 'user',
-         content: userMessage,
-       });
-   
-       // Получить ответ AI
-       const response = await this.getResponse(context);
-       
-       context.messages.push({
-         role: 'assistant',
-         content: response,
-       });
-   
-       // Определить, нужно ли уже давать рекомендации
-       const turnCount = context.messages.filter(m => m.role === 'user').length;
-       const shouldRecommend = turnCount >= 3; // После 3-х реплик пользователя
-   
-       return {
-         message: response,
-         context,
-         shouldRecommend,
-       };
-     }
-   
-     /**
-      * Получить рекомендации на основе диалога
-      */
-     async getRecommendations(context: DialogContext): Promise<string[]> {
-       const recommendPrompt = `На основе беседы с клиентом, порекомендуй 3-5 конкретных напитков.
-   
-   Верни ТОЛЬКО JSON массив с ID категорий, без пояснений:
-   ["green-tea", "oolong-tea", "cold-drinks"]
-   
-   Доступные категории:
-   - green-tea (зеленый чай)
-   - black-tea (черный чай)
-   - oolong-tea (улун)
-   - puer-tea (пуэр)
-   - coffee (кофе)
-   - cold-drinks (холодные напитки)
-   - desserts (десерты)`;
-   
-       context.messages.push({
-         role: 'user',
-         content: recommendPrompt,
-       });
-   
-       const response = await this.getResponse(context);
-       
-       try {
-         const categories = JSON.parse(response);
-         return Array.isArray(categories) ? categories : [];
-       } catch (error) {
-         console.error('Failed to parse recommendations:', response);
-         return ['green-tea', 'black-tea', 'coffee']; // Fallback
-       }
-     }
-   
-     /**
-      * Получить ответ от GPT
-      */
-     private async getResponse(context: DialogContext, userPrompt?: string): Promise<string> {
-       try {
-         const messages = [...context.messages];
-         if (userPrompt) {
-           messages.push({ role: 'user', content: userPrompt });
-         }
-   
-         const completion = await this.client.chat.completions.create({
-           model: this.model,
-           messages,
-           temperature: 0.8, // Более творческие ответы
-           max_tokens: 150, // Короткие ответы
-         });
-   
-         return completion.choices[0]?.message?.content || 'Извините, не расслышал...';
-       } catch (error: any) {
-         console.error('OpenAI Error:', error);
-         throw new Error('Failed to get AI response');
-       }
-     }
-   }
-   
-   export const openaiService = new OpenAIService(
-     process.env.OPENAI_API_KEY || '',
-     process.env.OPENAI_MODEL || 'gpt-4o'
-   );
-   ```
+**Yandex SpeechKit:**
+- Создать аккаунт в Yandex Cloud
+- Создать сервисный аккаунт с ролью `ai.speechkit-stt.user` и `ai.speechkit-tts.user`
+- Получить API ключ или IAM токен
+- Настроить авторизацию (рекомендуется IAM токен с автообновлением)
+- Проверить квоты и лимиты (достаточно ли для тестирования)
 
-**✅ Критерий завершения:** OpenAI сервис создан с промптами
+**OpenAI API:**
+- Создать аккаунт OpenAI
+- Получить API ключ
+- Настроить биллинг (минимум $5 на счету для начала)
+- Проверить доступ к модели GPT-4o
+- Настроить rate limits для безопасности
+
+**Переменные окружения (.env):**
+- YANDEX_API_KEY или YANDEX_IAM_TOKEN
+- YANDEX_FOLDER_ID
+- OPENAI_API_KEY
+- OPENAI_ORG_ID (опционально)
+
+#### 1.2. Создание моделей БД для AI
+**Задача:** Добавить новые таблицы в базу данных
+
+**Действия:**
+- Создать миграцию с таблицами из раздела 4.1
+- Применить миграцию
+- Проверить создание всех таблиц и индексов
+- Создать тестовые данные для разработки
+
+#### 1.3. Настройка конфигурации AI-сервисов
+**Задача:** Создать конфигурационные файлы для AI-компонентов
+
+**Файл aiConfig.js:**
+- Выбор AI-провайдера (openai/llama)
+- Параметры модели (temperature, max_tokens и т.д.)
+- Таймауты запросов
+- Retry логика
+
+**Файл sttConfig.js:**
+- Настройки Yandex SpeechKit STT
+- Язык распознавания (ru-RU)
+- Формат аудио (OPUS, 16kHz, mono)
+- Параметры потокового распознавания
+- Настройки VAD (Voice Activity Detection)
+
+**Файл ttsConfig.js:**
+- Настройки Yandex SpeechKit TTS
+- Выбор голоса (alena - женский, дружелюбный)
+- Скорость речи (1.0 - нормальная)
+- Эмоциональная окраска (neutral/friendly)
+- Формат вывода (OGG_OPUS для экономии трафика)
+
+#### 1.4. Настройка WebSocket сервера для аудио
+**Задача:** Подготовить WebSocket для потоковой передачи аудио
+
+**Действия:**
+- Настроить WebSocket endpoint `/ws/audio`
+- Настроить обработку бинарных сообщений (аудио данные)
+- Настроить буферизацию входящего аудио
+- Реализовать логику отправки аудио ответов
+- Добавить обработку разрыва соединения
+
+**Протокол WebSocket:**
+- Клиент отправляет: бинарные чанки аудио (Opus, каждые 100-200ms)
+- Сервер отправляет: 
+  - JSON с распознанным текстом
+  - Бинарные данные синтезированной речи
+  - JSON со статусом (thinking/speaking/listening)
 
 ---
 
-### Задача 3.2: Создание роутов для AI-диалога
+### Этап 2: Разработка Speech-to-Text интеграции (4-5 дней)
 
-#### Шаги выполнения:
+#### 2.1. Сервис STT (sttService.js)
+**Задача:** Реализовать распознавание речи через Yandex SpeechKit
 
-1. **Создать роут для диалога src/routes/dialog.ts**
-   ```typescript
-   import { FastifyInstance, FastifyRequest } from 'fastify';
-   import { openaiService, DialogContext } from '../services/ai/openaiService';
-   import { sttService } from '../services/speech/sttService';
-   import { ttsService } from '../services/speech/ttsService';
-   
-   // Хранилище активных диалогов (в реальности использовать Redis)
-   const activeSessions = new Map<string, DialogContext>();
-   
-   interface StartDialogResponse {
-     sessionId: string;
-     message: string;
-     audio: string; // base64
-   }
-   
-   interface ContinueDialogBody {
-     sessionId: string;
-     audio?: string; // base64 audio from user
-     text?: string; // или текст напрямую
-   }
-   
-   interface RecommendBody {
-     sessionId: string;
-   }
-   
-   export default async function dialogRoutes(fastify: FastifyInstance) {
-     // Начать новый диалог
-     fastify.post<{ Reply: StartDialogResponse }>('/dialog/start', async (request, reply) => {
-       try {
-         // Начать диалог с AI
-         const { message, context } = await openaiService.startDialog();
-         
-         // Сгенерировать sessionId
-         const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-         
-         // Сохранить контекст
-         activeSessions.set(sessionId, context);
-         
-         // Синтезировать голос
-         const audioBuffer = await ttsService.synthesize(message);
-         
-         return {
-           sessionId,
-           message,
-           audio: audioBuffer.toString('base64'),
-         };
-       } catch (error: any) {
-         fastify.log.error(error);
-         return reply.code(500).send({ error: error.message });
-       }
-     });
-   
-     // Продолжить диалог
-     fastify.post<{ Body: ContinueDialogBody }>('/dialog/continue', async (request, reply) => {
-       try {
-         const { sessionId, audio, text } = request.body;
-         
-         if (!sessionId) {
-           return reply.code(400).send({ error: 'Session ID required' });
-         }
-         
-         const context = activeSessions.get(sessionId);
-         if (!context) {
-           return reply.code(404).send({ error: 'Session not found' });
-         }
-         
-         // Получить текст пользователя
-         let userText = text;
-         if (audio && !text) {
-           // Распознать речь
-           const audioBuffer = Buffer.from(audio, 'base64');
-           userText = await sttService.recognize(audioBuffer);
-         }
-         
-         if (!userText) {
-           return reply.code(400).send({ error: 'Text or audio required' });
-         }
-         
-         // Продолжить диалог с AI
-         const { message, context: updatedContext, shouldRecommend } = 
-           await openaiService.continueDialog(context, userText);
-         
-         // Обновить контекст
-         activeSessions.set(sessionId, updatedContext);
-         
-         // Синтезировать ответ
-         const audioBuffer = await ttsService.synthesize(message);
-         
-         return {
-           message,
-           audio: audioBuffer.toString('base64'),
-           userText, // Для отладки
-           shouldRecommend,
-         };
-       } catch (error: any) {
-         fastify.log.error(error);
-         return reply.code(500).send({ error: error.message });
-       }
-     });
-   
-     // Получить рекомендации
-     fastify.post<{ Body: RecommendBody }>('/dialog/recommend', async (request, reply) => {
-       try {
-         const { sessionId } = request.body;
-         
-         const context = activeSessions.get(sessionId);
-         if (!context) {
-           return reply.code(404).send({ error: 'Session not found' });
-         }
-         
-         // Получить рекомендации категорий
-         const categories = await openaiService.getRecommendations(context);
-         
-         // Закрыть сессию
-         activeSessions.delete(sessionId);
-         
-         return {
-           categories,
-           message: 'Я подобрал для вас несколько вариантов!',
-         };
-       } catch (error: any) {
-         fastify.log.error(error);
-         return reply.code(500).send({ error: error.message });
-       }
-     });
-   
-     // Завершить диалог (отмена)
-     fastify.delete<{ Body: { sessionId: string } }>('/dialog/:sessionId', async (request, reply) => {
-       const { sessionId } = request.params as { sessionId: string };
-       activeSessions.delete(sessionId);
-       return { success: true };
-     });
-   }
-   ```
+**Основной функционал:**
+- Инициализация gRPC соединения с Yandex SpeechKit
+- Создание потокового запроса распознавания
+- Отправка аудио чанков в поток
+- Получение промежуточных результатов распознавания
+- Получение финального результата
+- Обработка ошибок и переподключение
 
-2. **Создать главный сервер ai-dialog-service**
-   Создать `src/server.ts`:
-   ```typescript
-   import Fastify from 'fastify';
-   import cors from '@fastify/cors';
-   import websocket from '@fastify/websocket';
-   import dialogRoutes from './routes/dialog';
-   import speechRoutes from './routes/speech';
-   import { ttsService } from './services/speech/ttsService';
-   
-   const fastify = Fastify({
-     logger: true,
-   });
-   
-   // Регистрация плагинов
-   fastify.register(cors, {
-     origin: true,
-   });
-   
-   fastify.register(websocket);
-   
-   // Регистрация роутов
-   fastify.register(dialogRoutes, { prefix: '/api' });
-   fastify.register(speechRoutes, { prefix: '/api' });
-   
-   // Health check
-   fastify.get('/health', async () => {
-     return { status: 'ok', service: 'ai-dialog' };
-   });
-   
-   // Предзагрузка частых фраз
-   const commonPhrases = [
-     'Здравствуйте! Как дела, как настроение?',
-     'Понимаю... А что расстроило?',
-     'Отлично! Рады вас видеть!',
-     'Какой чай вы предпочитаете?',
-     'Я подобрал для вас несколько вариантов!',
-   ];
-   
-   // Запуск сервера
-   const start = async () => {
-     try {
-       // Предзагрузить фразы (в фоне)
-       ttsService.preloadCommonPhrases(commonPhrases).catch(console.error);
-       
-       await fastify.listen({ port: 8081, host: '0.0.0.0' });
-       console.log('AI Dialog Service listening on http://localhost:8081');
-     } catch (err) {
-       fastify.log.error(err);
-       process.exit(1);
-     }
-   };
-   
-   start();
-   ```
+**Особенности потокового распознавания:**
+- Отправка аудио в реальном времени по мере записи
+- Получение частичных результатов (для отображения в UI)
+- Финализация при паузе или явной команде
+- Определение конца речи (VAD)
 
-3. **Запустить AI Dialog Service**
-   ```bash
-   cd backend/ai-dialog-service
-   npm run dev
-   ```
+**Обработка ошибок:**
+- Таймаут соединения (10 секунд без ответа)
+- Ошибки сети (retry 3 раза)
+- Ошибки API (неверный ключ, превышение квоты)
+- Низкое качество аудио
 
-**✅ Критерий завершения:** AI Dialog Service запущен и работает
+**Метрики для мониторинга:**
+- Латентность распознавания (цель <300ms)
+- Confidence score (уверенность распознавания)
+- Количество ошибок
+- Процент успешных распознаваний
+
+#### 2.2. Обработка аудио (audioProcessor.js)
+**Задача:** Подготовить аудио для отправки в STT
+
+**Функционал:**
+- Преобразование входящего аудио в нужный формат
+- Конвертация sample rate в 16kHz (если нужно)
+- Конвертация в моно (если стерео)
+- Кодирование в Opus для экономии трафика
+- Нормализация громкости (если слишком тихо)
+
+**Voice Activity Detection (VAD):**
+- Определение начала речи (когда пользователь начал говорить)
+- Определение конца речи (пауза >1.5 секунды)
+- Отсечение фонового шума
+- Автоматическая финализация при долгой паузе
+
+**Параметры VAD:**
+- Порог громкости для начала речи
+- Длительность паузы для конца речи (1.5-2 секунды)
+- Минимальная длительность речи (500ms)
+- Максимальная длительность одного высказывания (10 секунд)
+
+#### 2.3. API endpoint для аудио (routes/audio.js)
+**Задача:** Создать API для работы с аудио
+
+**Endpoints:**
+- WebSocket `/ws/audio/:sessionId` - потоковая передача аудио
+  - Получение аудио чанков от клиента
+  - Отправка распознанного текста
+  - Отправка синтезированной речи
+
+**Логика WebSocket соединения:**
+- При подключении: создать сессию STT
+- При получении аудио: отправить в STT поток
+- При получении текста от STT: отправить клиенту
+- При получении ответа AI: синтезировать речь и отправить
+- При отключении: закрыть сессию STT
+
+#### 2.4. Тестирование STT
+**Задача:** Проверить качество распознавания
+
+**Сценарии тестирования:**
+- Запись тестовых фраз разными голосами
+- Проверка распознавания в тихой обстановке
+- Проверка с фоновым шумом (имитация кафе)
+- Проверка с разными акцентами
+- Проверка быстрой и медленной речи
+- Измерение латентности
+
+**Критерии успеха:**
+- Латентность <300ms
+- Точность распознавания >90% в тихой обстановке
+- Точность >75% с умеренным фоновым шумом
+- VAD срабатывает корректно
 
 ---
 
-## 🎨 Фаза 4: Интеграция AI-диалога во Frontend
+### Этап 3: Разработка Text-to-Speech интеграции (3-4 дня)
 
-### Задача 4.1: Создание API клиента для AI-диалога
+#### 3.1. Сервис TTS (ttsService.js)
+**Задача:** Реализовать синтез речи через Yandex SpeechKit
 
-#### Шаги выполнения:
+**Основной функционал:**
+- Отправка текста на синтез
+- Получение аудио данных
+- Сохранение в кэш (Redis)
+- Проверка кэша перед синтезом
 
-1. **Создать API клиент frontend/src/api/dialog.ts**
-   ```typescript
-   import axios from 'axios';
-   
-   const API_BASE_URL = import.meta.env.VITE_AI_API_URL || 'http://localhost:8081/api';
-   
-   export interface DialogSession {
-     sessionId: string;
-     message: string;
-     audio: string; // base64
-   }
-   
-   export interface DialogResponse {
-     message: string;
-     audio: string; // base64
-     userText?: string;
-     shouldRecommend?: boolean;
-   }
-   
-   export interface RecommendationResponse {
-     categories: string[];
-     message: string;
-   }
-   
-   export const dialogApi = {
-     // Начать диалог
-     startDialog: async (): Promise<DialogSession> => {
-       const response = await axios.post(`${API_BASE_URL}/dialog/start`);
-       return response.data;
-     },
-   
-     // Продолжить диалог (отправить аудио)
-     continueDialog: async (sessionId: string, audioBlob: Blob): Promise<DialogResponse> => {
-       // Конвертировать blob в base64
-       const base64Audio = await blobToBase64(audioBlob);
-       
-       const response = await axios.post(`${API_BASE_URL}/dialog/continue`, {
-         sessionId,
-         audio: base64Audio.split(',')[1], // Убрать data:audio/... префикс
-       });
-       return response.data;
-     },
-   
-     // Получить рекомендации
-     getRecommendations: async (sessionId: string): Promise<RecommendationResponse> => {
-       const response = await axios.post(`${API_BASE_URL}/dialog/recommend`, {
-         sessionId,
-       });
-       return response.data;
-     },
-   
-     // Отменить диалог
-     cancelDialog: async (sessionId: string): Promise<void> => {
-       await axios.delete(`${API_BASE_URL}/dialog/${sessionId}`);
-     },
-   };
-   
-   // Вспомогательная функция
-   function blobToBase64(blob: Blob): Promise<string> {
-     return new Promise((resolve, reject) => {
-       const reader = new FileReader();
-       reader.onloadend = () => resolve(reader.result as string);
-       reader.onerror = reject;
-       reader.readAsDataURL(blob);
-     });
-   }
-   ```
+**Параметры синтеза:**
+- Голос: `alena` (женский, дружелюбный)
+- Язык: `ru-RU`
+- Формат: `OGG_OPUS` (компактный)
+- Скорость: `1.0` (нормальная)
+- Эмоция: `neutral` или `good` (позитивная)
 
-2. **Обновить .env в frontend**
-   ```env
-   VITE_API_URL=http://localhost:8080/api
-   VITE_AI_API_URL=http://localhost:8081/api
-   ```
+**Использование SSML (опционально):**
+- Управление паузами между предложениями
+- Выделение ключевых слов (эмфаза)
+- Управление интонацией вопросов
 
-**✅ Критерий завершения:** API клиент для диалога создан
+**Оптимизация:**
+- Параллельный синтез нескольких фраз (если диалог готовится заранее)
+- Предзагрузка следующей реплики во время воспроизведения текущей
 
----
+#### 3.2. Кэширование TTS (cacheManager.js)
+**Задача:** Реализовать систему кэширования синтезированных фраз
 
-### Задача 4.2: Создание компонентов для AI-диалога
+**Логика кэширования:**
+- Хеширование текста (SHA-256)
+- Проверка наличия в Redis кэше
+- Если есть - вернуть из кэша
+- Если нет - синтезировать и сохранить
 
-#### Шаги выполнения:
+**Типовые фразы для предзагрузки:**
+- Приветствия: "Здравствуйте! Как ваше настроение сегодня?"
+- Уточнения: "Не расслышал, повторите пожалуйста"
+- Подтверждения: "Понял, спасибо!"
+- Завершение: "Отлично! Я подобрал для вас несколько напитков"
 
-1. **Создать хук для записи аудио frontend/src/hooks/useAudioRecorder.ts**
-   ```typescript
-   import { useState, useRef, useCallback } from 'react';
-   
-   export const useAudioRecorder = () => {
-     const [isRecording, setIsRecording] = useState(false);
-     const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
-     const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-     const chunksRef = useRef<Blob[]>([]);
-   
-     const startRecording = useCallback(async () => {
-       try {
-         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-         const mediaRecorder = new MediaRecorder(stream, {
-           mimeType: 'audio/webm;codecs=opus',
-         });
-   
-         chunksRef.current = [];
-   
-         mediaRecorder.ondataavailable = (event) => {
-           if (event.data.size > 0) {
-             chunksRef.current.push(event.data);
-           }
-         };
-   
-         mediaRecorder.onstop = () => {
-           const blob = new Blob(chunksRef.current, { type: 'audio/webm;codecs=opus' });
-           setAudioBlob(blob);
-           stream.getTracks().forEach(track => track.stop());
-         };
-   
-         mediaRecorderRef.current = mediaRecorder;
-         mediaRecorder.start();
-         setIsRecording(true);
-       } catch (error) {
-         console.error('Failed to start recording:', error);
-         alert('Не удалось получить доступ к микрофону');
-       }
-     }, []);
-   
-     const stopRecording = useCallback(() => {
-       if (mediaRecorderRef.current && isRecording) {
-         mediaRecorderRef.current.stop();
-         setIsRecording(false);
-       }
-     }, [isRecording]);
-   
-     return {
-       isRecording,
-       audioBlob,
-       startRecording,
-       stopRecording,
-       clearAudio: () => setAudioBlob(null),
-     };
-   };
-   ```
+**Управление кэшем:**
+- TTL в Redis: 24 часа для всех фраз
+- Счетчик использований (hits_count) для аналитики
+- Периодическая очистка редко используемых фраз
+- Максимальный размер кэша: 100 наиболее частых фраз
 
-2. **Создать страницу AI-диалога frontend/src/pages/AIDialogPage/AIDialogPage.tsx**
-   ```typescript
-   import { useState, useEffect, useRef } from 'react';
-   import { useNavigate } from 'react-router-dom';
-   import { Mic, MicOff, Volume2 } from 'lucide-react';
-   import Lottie from 'lottie-react';
-   import { dialogApi } from '@/api/dialog';
-   import { useAudioRecorder } from '@/hooks/useAudioRecorder';
-   import { Button } from '@/components/Button/Button';
-   import teaCloudAnimation from '@/assets/animations/tea-cloud.json';
-   import './AIDialogPage.css';
-   
-   export const AIDialogPage = () => {
-     const navigate = useNavigate();
-     const { isRecording, audioBlob, startRecording, stopRecording, clearAudio } = useAudioRecorder();
-     
-     const [sessionId, setSessionId] = useState<string | null>(null);
-     const [currentMessage, setCurrentMessage] = useState<string>('');
-     const [userText, setUserText] = useState<string>('');
-     const [isProcessing, setIsProcessing] = useState(false);
-     const [turnCount, setTurnCount] = useState(0);
-     
-     const audioRef = useRef<HTMLAudioElement>(null);
-   
-     // Начать диалог при монтировании
-     useEffect(() => {
-       initDialog();
-       return () => {
-         // Отменить диалог при размонтировании
-         if (sessionId) {
-           dialogApi.cancelDialog(sessionId).catch(console.error);
-         }
-       };
-     }, []);
-   
-     // Обработать записанное аудио
-     useEffect(() => {
-       if (audioBlob && sessionId) {
-         handleUserResponse(audioBlob);
-       }
-     }, [audioBlob]);
-   
-     const initDialog = async () => {
-       try {
-         setIsProcessing(true);
-         const session = await dialogApi.startDialog();
-         setSessionId(session.sessionId);
-         setCurrentMessage(session.message);
-         
-         // Воспроизвести приветствие
-         playAudio(session.audio);
-       } catch (error) {
-         console.error('Failed to start dialog:', error);
-         alert('Не удалось начать диалог');
-       } finally {
-         setIsProcessing(false);
-       }
-     };
-   
-     const handleUserResponse = async (audioBlob: Blob) => {
-       if (!sessionId || isProcessing) return;
-   
-       try {
-         setIsProcessing(true);
-         setUserText(''); // Очистить предыдущий текст
-         
-         const response = await dialogApi.continueDialog(sessionId, audioBlob);
-         
-         setCurrentMessage(response.message);
-         setUserText(response.userText || '');
-         setTurnCount(prev => prev + 1);
-         
-         // Воспроизвести ответ AI
-         playAudio(response.audio);
-         
-         // Если пора давать рекомендации
-         if (response.shouldRecommend) {
-           setTimeout(() => {
-             handleGetRecommendations();
-           }, 3000); // Через 3 секунды после ответа
-         }
-         
-         clearAudio();
-       } catch (error) {
-         console.error('Failed to continue dialog:', error);
-         alert('Ошибка обработки ответа');
-       } finally {
-         setIsProcessing(false);
-       }
-     };
-   
-     const handleGetRecommendations = async () => {
-       if (!sessionId) return;
-   
-       try {
-         setIsProcessing(true);
-         const recommendations = await dialogApi.getRecommendations(sessionId);
-         
-         // Перейти к рекомендациям
-         navigate('/recommendations', {
-           state: { categories: recommendations.categories },
-         });
-       } catch (error) {
-         console.error('Failed to get recommendations:', error);
-         alert('Ошибка получения рекомендаций');
-       }
-     };
-   
-     const playAudio = (base64Audio: string) => {
-       if (!audioRef.current) return;
-       
-       const audioBlob = base64ToBlob(base64Audio, 'audio/ogg');
-       const audioUrl = URL.createObjectURL(audioBlob);
-       
-       audioRef.current.src = audioUrl;
-       audioRef.current.play();
-     };
-   
-     const handleSkip = () => {
-       if (sessionId) {
-         dialogApi.cancelDialog(sessionId).catch(console.error);
-       }
-       navigate('/menu');
-     };
-   
-     return (
-       <div className="ai-dialog-page">
-         <div className="dialog-animation">
-           <Lottie 
-             animationData={teaCloudAnimation} 
-             loop 
-             className="lottie-animation"
-           />
-         </div>
-   
-         <div className="dialog-content">
-           <div className="message-display">
-             <p className="ai-message">{currentMessage}</p>
-             {userText && (
-               <p className="user-message">Вы сказали: "{userText}"</p>
-             )}
-           </div>
-   
-           <div className="dialog-controls">
-             {!isProcessing && (
-               <button
-                 className={`mic-button ${isRecording ? 'recording' : ''}`}
-                 onClick={isRecording ? stopRecording : startRecording}
-                 disabled={isProcessing}
-               >
-                 {isRecording ? <MicOff size={48} /> : <Mic size={48} />}
-                 <span>{isRecording ? 'Остановить' : 'Говорите'}</span>
-               </button>
-             )}
-   
-             {isProcessing && (
-               <div className="processing-indicator">
-                 <div className="spinner"></div>
-                 <p>Обрабатываю...</p>
-               </div>
-             )}
-           </div>
-   
-           <div className="dialog-progress">
-             <p>Вопрос {turnCount} из ~3-5</p>
-           </div>
-   
-           <Button
-             variant="ghost"
-             size="medium"
-             onClick={handleSkip}
-           >
-             Пропустить диалог
-           </Button>
-         </div>
-   
-         {/* Скрытый аудио элемент для воспроизведения */}
-         <audio ref={audioRef} style={{ display: 'none' }} />
-       </div>
-     );
-   };
-   
-   // Вспомогательная функция
-   function base64ToBlob(base64: string, mimeType: string): Blob {
-     const byteCharacters = atob(base64);
-     const byteNumbers = new Array(byteCharacters.length);
-     for (let i = 0; i < byteCharacters.length; i++) {
-       byteNumbers[i] = byteCharacters.charCodeAt(i);
-     }
-     const byteArray = new Uint8Array(byteNumbers);
-     return new Blob([byteArray], { type: mimeType });
-   }
-   ```
+**Сохранение в БД (опционально):**
+- Популярные фразы (hits_count > 10) сохранять в таблицу tts_cache
+- Восстановление кэша Redis из БД при перезапуске
 
-3. **Создать стили AIDialogPage.css**
-   ```css
-   .ai-dialog-page {
-     width: 100%;
-     min-height: 100vh;
-     background: linear-gradient(180deg, #E8F5E9 0%, #F1F8E9 100%);
-     display: flex;
-     flex-direction: column;
-     align-items: center;
-     justify-content: space-between;
-     padding: var(--spacing-xl) var(--spacing-lg);
-   }
-   
-   .dialog-animation {
-     flex: 0 0 auto;
-     max-width: 400px;
-     width: 100%;
-     margin-bottom: var(--spacing-lg);
-   }
-   
-   .dialog-content {
-     flex: 1;
-     display: flex;
-     flex-direction: column;
-     align-items: center;
-     justify-content: center;
-     gap: var(--spacing-xl);
-     width: 100%;
-     max-width: 600px;
-   }
-   
-   .message-display {
-     background: white;
-     border-radius: var(--radius-lg);
-     padding: var(--spacing-lg);
-     box-shadow: var(--shadow-md);
-     min-height: 150px;
-     width: 100%;
-   }
-   
-   .ai-message {
-     font-size: var(--font-size-lg);
-     line-height: 1.6;
-     color: var(--color-text-black);
-     margin-bottom: var(--spacing-sm);
-   }
-   
-   .user-message {
-     font-size: var(--font-size-sm);
-     color: var(--color-secondary-gray);
-     font-style: italic;
-     padding-top: var(--spacing-sm);
-     border-top: 1px solid #e0e0e0;
-   }
-   
-   .dialog-controls {
-     display: flex;
-     align-items: center;
-     justify-content: center;
-   }
-   
-   .mic-button {
-     width: 150px;
-     height: 150px;
-     border-radius: 50%;
-     background: var(--gradient-chinese);
-     color: white;
-     display: flex;
-     flex-direction: column;
-     align-items: center;
-     justify-content: center;
-     gap: var(--spacing-sm);
-     box-shadow: var(--shadow-lg);
-     transition: all var(--transition-normal);
-     cursor: pointer;
-     border: none;
-   }
-   
-   .mic-button:hover:not(:disabled) {
-     transform: scale(1.05);
-     box-shadow: 0 8px 24px rgba(211, 47, 47, 0.4);
-   }
-   
-   .mic-button.recording {
-     animation: pulse 1.5s ease-in-out infinite;
-     background: var(--color-primary-red);
-   }
-   
-   @keyframes pulse {
-     0%, 100% {
-       transform: scale(1);
-       box-shadow: 0 0 0 0 rgba(211, 47, 47, 0.7);
-     }
-     50% {
-       transform: scale(1.05);
-       box-shadow: 0 0 0 20px rgba(211, 47, 47, 0);
-     }
-   }
-   
-   .processing-indicator {
-     display: flex;
-     flex-direction: column;
-     align-items: center;
-     gap: var(--spacing-md);
-   }
-   
-   .spinner {
-     width: 60px;
-     height: 60px;
-     border: 4px solid rgba(211, 47, 47, 0.3);
-     border-top-color: var(--color-primary-red);
-     border-radius: 50%;
-     animation: spin 1s linear infinite;
-   }
-   
-   @keyframes spin {
-     to { transform: rotate(360deg); }
-   }
-   
-   .dialog-progress {
-     text-align: center;
-     color: var(--color-secondary-gray);
-     font-size: var(--font-size-sm);
-   }
-   ```
+#### 3.3. Обработка аудио для воспроизведения
+**Задача:** Подготовить синтезированное аудио для отправки клиенту
 
-4. **Добавить роут для AI-диалога в App.tsx**
-   ```typescript
-   import { AIDialogPage } from './pages/AIDialogPage/AIDialogPage';
-   
-   // В Routes добавить:
-   <Route path="/ai-dialog" element={<AIDialogPage />} />
-   ```
+**Функционал:**
+- Получение аудио от TTS API
+- Проверка формата и качества
+- Отправка через WebSocket клиенту
+- Обработка ошибок воспроизведения
 
-5. **Обновить ModeSelectorPage для перехода к AI-диалогу**
-   ```typescript
-   const handleAIMode = () => {
-     navigate('/ai-dialog'); // Вместо alert
-   };
-   ```
+**Оптимизация латентности:**
+- Отправка аудио по частям (chunked transfer)
+- Начало воспроизведения до полной загрузки
+- Буферизация для плавного воспроизведения
 
-**✅ Критерий завершения:** AI-диалог интегрирован во frontend, работает запись и воспроизведение
+#### 3.4. Тестирование TTS
+**Задача:** Проверить качество синтеза и латентность
+
+**Сценарии тестирования:**
+- Синтез коротких фраз (5-10 слов)
+- Синтез длинных фраз (20-30 слов)
+- Синтез с разными эмоциями
+- Проверка естественности звучания
+- Измерение латентности синтеза
+
+**Критерии успеха:**
+- Латентность синтеза <500ms для коротких фраз
+- Естественное звучание (без роботизированности)
+- Правильная интонация вопросов
+- Кэш работает корректно (повторный запрос мгновенный)
 
 ---
 
-### Задача 4.3: Создание страницы рекомендаций
+### Этап 4: Разработка AI-диалога (5-7 дней)
 
-#### Шаги выполнения:
+#### 4.1. Системный промпт (prompts/systemPrompt.js)
+**Задача:** Создать инструкции для AI-модели
 
-1. **Создать RecommendationsPage.tsx**
-   ```typescript
-   import { useState, useEffect } from 'react';
-   import { useNavigate, useLocation } from 'react-router-dom';
-   import { productsApi, Product } from '@/api/products';
-   import { ProductCard } from '@/components/ProductCard/ProductCard';
-   import { useCart } from '@/context/CartContext';
-   import { Button } from '@/components/Button/Button';
-   import './RecommendationsPage.css';
-   
-   export const RecommendationsPage = () => {
-     const navigate = useNavigate();
-     const location = useLocation();
-     const { addItem, itemCount } = useCart();
-     
-     const [products, setProducts] = useState<Product[]>([]);
-     const [loading, setLoading] = useState(true);
-     
-     // Получить рекомендованные категории из state
-     const categories = location.state?.categories || [];
-   
-     useEffect(() => {
-       loadRecommendedProducts();
-     }, [categories]);
-   
-     const loadRecommendedProducts = async () => {
-       try {
-         setLoading(true);
-         const allProducts = await productsApi.getProducts();
-         
-         // Фильтровать по рекомендованным категориям
-         const recommended = allProducts.filter((product) =>
-           categories.some((catSlug: string) => {
-             // Здесь нужно связать slug категории с category_id
-             // Для простоты возьмем все товары из рекомендованных категорий
-             return true; // TODO: реализовать правильную фильтрацию
-           })
-         );
-         
-         setProducts(recommended.slice(0, 6)); // Показать максимум 6 товаров
-       } catch (error) {
-         console.error('Failed to load products:', error);
-       } finally {
-         setLoading(false);
-       }
-     };
-   
-     if (loading) {
-       return <div className="loading">Загрузка рекомендаций...</div>;
-     }
-   
-     return (
-       <div className="recommendations-page">
-         <header className="recommendations-header">
-           <h1>
-             <span className="title-ru">🎉 Специально для вас!</span>
-             <span className="title-zh">为您推荐</span>
-           </h1>
-           <p className="subtitle">Я подобрал эти напитки на основе нашей беседы</p>
-         </header>
-   
-         <div className="products-grid">
-           {products.map((product) => (
-             <ProductCard
-               key={product.id}
-               product={product}
-               onAddToCart={addItem}
-             />
-           ))}
-         </div>
-   
-         <div className="recommendations-actions">
-           <Button
-             variant="ghost"
-             size="large"
-             fullWidth
-             onClick={() => navigate('/menu')}
-           >
-             Посмотреть другие товары
-           </Button>
-           
-           {itemCount > 0 && (
-             <Button
-               variant="primary"
-               size="large"
-               fullWidth
-               onClick={() => navigate('/cart')}
-             >
-               Перейти к оформлению ({itemCount})
-             </Button>
-           )}
-         </div>
-       </div>
-     );
-   };
-   ```
+**Структура системного промпта:**
 
-2. **Добавить роут для рекомендаций**
-   ```typescript
-   <Route path="/recommendations" element={<RecommendationsPage />} />
-   ```
+**Роль и контекст:**
+- Ты - дружелюбный AI-консультант в чайном кафе AI-Cha
+- Твоя задача - в непринужденной беседе узнать о клиенте и подобрать ему напитки
+- Кафе специализируется на китайских чаях и имеет русско-китайскую тематику
+- У тебя есть 5-7 вопросов, чтобы понять клиента
 
-**✅ Критерий завершения:** Страница рекомендаций работает
+**Тон и стиль:**
+- Дружелюбный и неформальный
+- Короткие реплики (1-2 предложения)
+- Без излишней вежливости
+- Естественный разговорный стиль
+- Проявлять эмпатию к настроению клиента
+
+**Тип вопросов:**
+- О настроении и эмоциональном состоянии
+- О предпочтениях (сладкое/горькое, крепкое/легкое)
+- О контексте (один/с друзьями, утро/вечер)
+- Об опыте с чаем
+- О текущих желаниях
+
+**Ограничения:**
+- Каждая реплика не более 20-30 слов
+- Не задавать несколько вопросов в одной реплике
+- Не уходить от темы чая и напитков
+- Если клиент не хочет отвечать - не настаивать
+- Максимум 7 вопросов за диалог
+
+**Примеры поведения:**
+```
+Хороший стиль:
+AI: "Привет! Как настроение сегодня?"
+Клиент: "Устал немного"
+AI: "Понимаю. Хочется взбодриться или наоборот расслабиться?"
+
+Плохой стиль:
+AI: "Здравствуйте, уважаемый клиент! Рад приветствовать вас в нашем замечательном заведении. Расскажите мне о своем настроении, предпочтениях в чае и о том, что вы любите пить по утрам?"
+```
+
+#### 4.2. Шаблоны вопросов (prompts/questionTemplates.js)
+**Задача:** Подготовить типовые вопросы для разных сценариев
+
+**Категории вопросов:**
+
+**1. Настроение (начальный вопрос):**
+- "Привет! Как дела, как настроение?"
+- "Здравствуйте! Как вы себя чувствуете сегодня?"
+- "Добрый день! Какое настроение?"
+
+**2. Уточнение эмоций:**
+- Для грустного: "Что случилось? Можно чаем поддержать?"
+- Для уставшего: "Тяжелый день был? Хочется взбодриться или расслабиться?"
+- Для веселого: "Отлично! Хочется чего-то особенного?"
+
+**3. Вкусовые предпочтения:**
+- "Любите сладкое или больше горьковатое?"
+- "Крепкий чай предпочитаете или легкий?"
+- "Как относитесь к необычным вкусам?"
+
+**4. Контекст:**
+- "Один пришли или с компанией?"
+- "Надолго планируете задержаться?"
+- "Часто пьете чай?"
+
+**5. Опыт с чаем:**
+- "Разбираетесь в чае или только начинаете?"
+- "Пробовали китайский чай раньше?"
+- "Есть любимый сорт?"
+
+**6. Температура:**
+- "Горячее или холодное предпочитаете?"
+- "Сейчас хочется согреться или освежиться?"
+
+**7. Завершающий:**
+- "Что-то еще важное, что нужно учесть?"
+- "Все понятно! Сейчас подберу варианты"
+
+**Адаптивность:**
+- Вопросы выбираются на основе предыдущих ответов
+- Не задавать одинаковые вопросы
+- Пропускать очевидные (если день - не спрашивать про утро/вечер)
+
+#### 4.3. Сервис управления диалогом (dialogService.js)
+**Задача:** Реализовать логику ведения диалога
+
+**Основной функционал:**
+- Создание новой сессии диалога
+- Отправка сообщения в AI-модель
+- Получение ответа от AI
+- Сохранение истории диалога
+- Определение момента завершения диалога
+
+**Структура сессии диалога:**
+- session_id - уникальный идентификатор
+- messages - массив сообщений {role, content, timestamp}
+- user_profile - накапливаемая информация о пользователе
+- questions_asked - счетчик заданных вопросов
+- status - текущий статус (listening/thinking/speaking/completed)
+
+**Логика диалога:**
+1. Инициализация: системный промпт + первый вопрос
+2. Цикл:
+   - Получить ответ пользователя (текст от STT)
+   - Добавить в историю
+   - Отправить историю в AI-модель
+   - Получить следующий вопрос или завершение
+   - Синтезировать речь
+   - Отправить аудио клиенту
+3. Завершение: когда AI решает, что информации достаточно
+
+**Определение завершения:**
+- AI явно говорит что закончил (ключевые слова: "отлично", "подберу", "сейчас покажу")
+- Достигнуто 7 вопросов
+- Прошло 60 секунд с начала диалога
+- Пользователь просит завершить ("хватит", "покажи уже")
+
+#### 4.4. Сервис AI-модели (aiModelService.js)
+**Задача:** Интеграция с OpenAI GPT-4o
+
+**Основной функционал:**
+- Отправка запроса в OpenAI API
+- Передача истории диалога
+- Получение ответа AI
+- Обработка ошибок API
+
+**Формат запроса:**
+```
+POST https://api.openai.com/v1/chat/completions
+
+Body:
+{
+  "model": "gpt-4o",
+  "messages": [
+    {"role": "system", "content": "СИСТЕМНЫЙ ПРОМПТ"},
+    {"role": "assistant", "content": "Привет! Как настроение?"},
+    {"role": "user", "content": "Устал немного"},
+    {"role": "assistant", "content": "Понимаю. Хочется взбодриться?"},
+    {"role": "user", "content": "Да, взбодриться"}
+  ],
+  "temperature": 0.7,
+  "max_tokens": 150,
+  "presence_penalty": 0.6
+}
+```
+
+**Обработка ответа:**
+- Извлечение текста ответа
+- Проверка на корректность (не слишком длинный)
+- Определение типа ответа (вопрос/завершение)
+- Логирование для аналитики
+
+**Обработка ошибок:**
+- Rate limit (429) - подождать и повторить
+- Таймаут - повторить запрос
+- Ошибка API - использовать fallback фразу
+- Неадекватный ответ - использовать шаблонный вопрос
+
+**Оптимизация:**
+- Ограничение истории (только последние 10 сообщений)
+- Сокращение системного промпта для экономии токенов
+- Кэширование системного промпта (если API поддерживает)
+
+#### 4.5. API для диалога (routes/dialog.js)
+**Задача:** Создать endpoints для управления диалогом
+
+**Endpoints:**
+
+**POST `/api/dialog/start`**
+- Создать новую сессию диалога
+- Вернуть session_id и первый вопрос
+- Инициализировать WebSocket соединение
+
+**POST `/api/dialog/:sessionId/message`**
+- Отправить сообщение пользователя (текст)
+- Получить ответ AI
+- Вернуть текст и аудио URL
+
+**GET `/api/dialog/:sessionId/status`**
+- Получить статус диалога
+- Количество заданных вопросов
+- Готов ли к завершению
+
+**POST `/api/dialog/:sessionId/complete`**
+- Завершить диалог принудительно
+- Вернуть собранную информацию о пользователе
+
+**WebSocket `/ws/dialog/:sessionId`**
+- Полный цикл: аудио in → текст → AI → TTS → аудио out
+- Статусы в реальном времени
+- Прерывание диалога
+
+#### 4.6. Тестирование диалога
+**Задача:** Проверить качество ведения беседы
+
+**Сценарии тестирования:**
+
+**Сценарий 1 - Уставший клиент:**
+- User: "Устал очень"
+- AI должен: спросить хочется ли расслабиться или взбодриться
+- Подбор: успокаивающие чаи
+
+**Сценарий 2 - Веселый клиент:**
+- User: "Отличное настроение!"
+- AI должен: предложить что-то особенное или праздничное
+- Подбор: яркие, необычные напитки
+
+**Сценарий 3 - Новичок в чае:**
+- User: "Не разбираюсь в чае"
+- AI должен: спросить вкусовые предпочтения проще
+- Подбор: классические, понятные чаи
+
+**Сценарий 4 - Торопливый клиент:**
+- User: "Давай быстрее"
+- AI должен: ускорить диалог, задать только ключевые вопросы
+- Завершить за 3-4 вопроса
+
+**Критерии успеха:**
+- Диалог естественный и не робототизированный
+- AI адаптируется под ответы пользователя
+- Длительность диалога 30-60 секунд
+- Собрана достаточная информация для подбора
 
 ---
 
-## 🧪 Фаза 5: Тестирование AI-интеграции
+### Этап 5: Анализ диалога и подбор товаров (4-5 дней)
 
-### Задача 5.1: Тестирование полного цикла AI-диалога
+#### 5.1. Сервис анализа (analysisService.js)
+**Задача:** Извлечь информацию о пользователе из диалога
 
-#### Чек-лист тестирования:
+**Функционал анализа:**
+- Определение настроения (mood)
+- Определение вкусовых предпочтений (preferences)
+- Определение контекста (context)
+- Определение уровня опыта (experience_level)
+
+**Методы анализа:**
+
+**1. Анализ через AI (рекомендуемый):**
+- Отправка всей истории диалога в GPT-4o
+- Специальный промпт для анализа
+- Получение структурированного JSON ответа
+
+**Промпт для анализа:**
+```
+Проанализируй диалог с клиентом и извлеки информацию в JSON формате:
+{
+  "mood": "happy/sad/tired/energetic/neutral",
+  "mood_confidence": 0.0-1.0,
+  "preferences": {
+    "sweetness": "sweet/neutral/bitter",
+    "strength": "strong/medium/light",
+    "temperature": "hot/cold/any",
+    "unusual": true/false
+  },
+  "context": {
+    "alone": true/false,
+    "time_spent": "quick/medium/long",
+    "time_of_day": "morning/afternoon/evening"
+  },
+  "experience_level": "beginner/enthusiast/expert",
+  "cultural_interest": "high/medium/low",
+  "keywords": ["ключевые", "слова"]
+}
+```
+
+**2. Анализ через ключевые слова (fallback):**
+- Регулярные выражения для поиска ключевых слов
+- Счетчик эмоциональных маркеров
+- Базовая категоризация
+
+**Сохранение профиля:**
+- Создание записи в таблице user_profiles
+- Сохранение всех извлеченных данных
+- Связь с session_id
+
+#### 5.2. Промпты для анализа (prompts/analysisPrompts.js)
+**Задача:** Подготовить промпты для разных видов анализа
+
+**Типы промптов:**
+
+**Анализ настроения:**
+- Определить эмоциональное состояние
+- Уровень уверенности
+- Ключевые маркеры
+
+**Анализ предпочтений:**
+- Вкусовые предпочтения (сладкое/горькое)
+- Предпочтения по крепости
+- Температурные предпочтения
+- Готовность к экспериментам
+
+**Анализ контекста:**
+- Социальный контекст (один/компания)
+- Временной контекст
+- Цель визита (отдохнуть/взбодриться/попробовать новое)
+
+#### 5.3. Сервис рекомендаций (recommendationService.js)
+**Задача:** Подобрать товары на основе профиля пользователя
+
+**Алгоритм подбора:**
+
+**1. Фильтрация по жестким критериям:**
+- Температура (горячее/холодное)
+- Доступность товара (is_available = true)
+
+**2. Скоринг товаров:**
+Для каждого товара рассчитать score на основе:
+
+**Соответствие настроению (вес 30%):**
+- Усталость → успокаивающие чаи (ромашка, мелисса) +10
+- Грусть → успокаивающие, легкие +8
+- Веселье → яркие, необычные, пуэр +10
+- Энергичность → крепкие, матча, черный чай +10
+
+**Соответствие вкусу (вес 40%):**
+- Сладкий → фруктовые, с добавками +10
+- Горький → чистые чаи, пуэр +10
+- Крепкий → черный чай, пуэр +10
+- Легкий → зеленый чай, белый чай +10
+
+**Соответствие опыту (вес 20%):**
+- Новичок → популярные, классические +5
+- Любитель → разнообразие +5
+- Эксперт → редкие, качественные +10
+
+**Соответствие контексту (вес 10%):**
+- Компания → большие объемы, церемонии +5
+- Один → стандартные порции +3
+- Быстро → готовые напитки +5
+
+**3. Сортировка и выбор топ-6:**
+- Отсортировать по score (убыванию)
+- Выбрать топ-6 товаров
+- Обеспечить разнообразие (не все из одной категории)
+
+**4. Генерация обоснований:**
+Для каждой рекомендации создать короткое обоснование через AI:
+
+**Промпт для обоснования:**
+```
+На основе диалога с клиентом объясни в 1-2 предложениях, почему мы рекомендуем ему этот товар:
+Товар: {название товара}
+Описание: {описание}
+Профиль клиента: {краткая выжимка}
+
+Ответ должен быть персонализированным, дружелюбным и коротким (до 100 символов).
+```
+
+**Примеры обоснований:**
+- "Этот успокаивающий травяной чай поможет расслабиться после тяжелого дня"
+- "Бодрящий матча латте - то что нужно для энергии!"
+- "Классический зеленый чай - отличный выбор для знакомства с китайской культурой"
+
+**5. Сохранение рекомендаций:**
+- Создание записей в таблице ai_recommendations
+- Связь с session_id и profile_id
+- Сохранение score и reasoning
+
+#### 5.4. API для рекомендаций (routes/recommendations.js)
+**Задача:** Создать endpoints для получения рекомендаций
+
+**Endpoints:**
+
+**POST `/api/recommendations/generate`**
+- Body: { session_id }
+- Запустить анализ диалога
+- Создать профиль пользователя
+- Сгенерировать рекомендации
+- Вернуть список товаров с обоснованиями
+
+**GET `/api/recommendations/:sessionId`**
+- Получить ранее сгенерированные рекомендации
+- Вернуть товары с reasoning
+
+**POST `/api/recommendations/:recommendationId/feedback`**
+- Body: { added_to_cart: true/false }
+- Сохранить факт добавления в корзину
+- Для аналитики эффективности
+
+#### 5.5. Тестирование рекомендаций
+**Задача:** Проверить качество подбора
+
+**Тестовые сценарии:**
+
+**Тест 1 - Уставший, новичок:**
+- Профиль: mood=tired, experience=beginner, sweet=yes
+- Ожидаемые: ромашковый чай, молочный улун, фруктовые чаи
+- Не должно быть: крепкий пуэр, матча
+
+**Тест 2 - Энергичный эксперт:**
+- Профиль: mood=energetic, experience=expert, unusual=yes
+- Ожидаемые: редкие пуэры, высокогорные улуны, матча
+- Не должно быть: базовые чаи для новичков
+
+**Тест 3 - Грустный, хочет сладкого:**
+- Профиль: mood=sad, sweetness=sweet, temperature=hot
+- Ожидаемые: сладкие травяные чаи, чаи с медом, молочные напитки
+- Не должно быть: горькие, холодные
+
+**Критерии успеха:**
+- Рекомендации соответствуют профилю (>80% релевантности)
+- Обоснования персонализированы и понятны
+- Разнообразие (не все из одной категории)
+- Товары доступны к заказу
+
+---
+
+### Этап 6: Frontend для AI-диалога (5-6 дней)
+
+**⚠️ Важно: Все UI-элементы для экрана терминала**
+Прототип терминала использует экран 10.1" с разрешением 1024x600 пикселей. Все размеры должны быть крупными для комфортного использования на малом экране. Используйте относительные единицы (rem, em, %) для масштабируемости. Дизайн одинаков на всех экранах (не адаптивный).
+
+#### 6.1. Экран AI-диалога (AIDialogScreen)
+**Задача:** Создать интерфейс для голосового взаимодействия
+
+**Визуальная структура:**
+
+**Центральная часть:**
+- Lottie анимация (нейро-облако / волны звука, размер ~18rem × 18rem)
+- Анимация меняется в зависимости от состояния:
+  - Слушает (listening) - волны пульсируют
+  - Думает (thinking) - вращение / мерцание
+  - Говорит (speaking) - активная анимация
+
+**Текстовая область (нижняя часть экрана):**
+- Текущая реплика AI:
+  - Русский: 1.625rem, bold
+  - Китайский: 1.375rem
+- Двуязычное отображение
+- Плавное появление текста (typewriter эффект опционально)
+- Отступы от краев минимум 2.5rem
+
+**Индикаторы:**
+- Индикатор записи (красный круг 1.5rem) когда слушает
+- Индикатор уровня звука (visualizer высотой 2.5rem)
+- Прогресс диалога (текст 1.375rem: "Вопрос 5 из 7")
+
+**Кнопки управления (крупные для сенсорного управления):**
+- Кнопка "Пропустить": 12.5rem × 4.5rem, текст 1.25rem
+- Кнопка "Не услышал": 12.5rem × 4.5rem, текст 1.25rem
+- Кнопка "Стоп": 7.5rem × 4.5rem, иконка 2rem
+- Отступы между кнопками: 1rem
+
+**Цветовая схема:**
+- Фон: темный градиент (для контраста с анимацией)
+- Текст: белый, высокий контраст
+- Акценты: красный (AI-Cha фирменный)
+
+#### 6.2. Компонент записи аудио (useAudioRecorder hook)
+**Задача:** Реализовать захват аудио с микрофона
+
+**Функционал:**
+- Запрос разрешения на микрофон
+- Создание MediaStream
+- Создание AudioContext для обработки
+- Кодирование в Opus через MediaRecorder
+- Отправка чанков через WebSocket
+
+**Параметры записи:**
+- Sample rate: 16000 Hz (оптимально для STT)
+- Channels: 1 (mono)
+- Codec: opus
+- Chunk size: 100-200ms
+
+**Обработка:**
+- Voice Activity Detection на клиенте (опционально)
+- Визуализация уровня звука
+- Автоматическая остановка при паузе (через VAD на сервере)
+
+#### 6.3. Компонент воспроизведения (AudioPlayer)
+**Задача:** Воспроизвести синтезированную речь
+
+**Функционал:**
+- Получение аудио данных от сервера (WebSocket или HTTP)
+- Создание Audio элемента
+- Воспроизведение с буферизацией
+- Отображение статуса воспроизведения
+
+**Обработка:**
+- Автоматическое воспроизведение при получении
+- Очередь (если несколько реплик)
+- Обработка ошибок воспроизведения
+
+#### 6.4. WebSocket клиент (useDialog hook)
+**Задача:** Управление WebSocket соединением для диалога
+
+**Функционал:**
+- Подключение к WebSocket `/ws/dialog/:sessionId`
+- Отправка аудио чанков
+- Получение статусов и ответов
+- Обработка разрыва соединения
+
+**События WebSocket:**
+
+**От клиента к серверу:**
+- `audio_chunk` - бинарные данные аудио
+- `stop_recording` - остановка записи
+- `skip_question` - пропуск вопроса
+
+**От сервера к клиенту:**
+- `status` - смена статуса {listening/thinking/speaking}
+- `transcription` - распознанный текст пользователя
+- `ai_response` - текст ответа AI
+- `audio` - синтезированная речь (бинарные данные)
+- `dialog_complete` - диалог завершен
+
+**Обработка разрыва:**
+- Автоматическое переподключение (3 попытки)
+- Показ уведомления пользователю
+- Возможность продолжить или начать заново
+
+#### 6.5. Логика управления диалогом (frontend)
+**Задача:** Координация процесса диалога на клиенте
+
+**Состояния диалога:**
+- `initializing` - подключение, ожидание первого вопроса
+- `listening` - запись ответа пользователя
+- `processing` - отправка на сервер, ожидание
+- `speaking` - воспроизведение ответа AI
+- `completed` - диалог завершен
+
+**Переходы между состояниями:**
+1. initializing → speaking (первый вопрос)
+2. speaking → listening (после воспроизведения)
+3. listening → processing (пауза или кнопка стоп)
+4. processing → speaking (получен ответ AI)
+5. speaking → completed (AI завершил диалог)
+
+**Обработка ошибок:**
+- Ошибка микрофона → показать текстовый интерфейс (fallback)
+- Ошибка сети → показать повтор / отмену
+- Таймаут → автозавершение
+
+#### 6.6. Экран результатов AI (AIRecommendationsScreen)
+**Задача:** Отобразить персонализированные рекомендации
+
+**Визуальная структура:**
+
+**Заголовок:**
+- "Мы подобрали для вас!" / "我们为您挑选了!" (2rem русский, 1.75rem китайский)
+- Краткая выжимка профиля (опционально, 1.25rem):
+  - "Успокаивающие напитки для вашего настроения"
+
+**Список рекомендаций:**
+- Сетка 2 колонки (как в обычном каталоге для удобства на малом экране)
+- Карточки ProductCard увеличенного размера
+- Дополнительно: блок с обоснованием AI (1.125rem, выделен цветом)
+- Позиция в списке (badge 1.75rem × 1.75rem)
+- Иконка AI 1.75rem рядом с обоснованием
+
+**Пример карточки:**
+```
+[Фото товара]
+Ромашковый чай (1.25rem bold)
+Chamomile Tea / 洋甘菊茶 (1rem)
+250 ₽ (2rem bold)
+
+✨ AI: "Этот успокаивающий чай поможет расслабиться 
+после тяжелого дня" (1.125rem, курсив)
+
+[Кнопка + 3rem × 3rem]
+```
+
+**Кнопка внизу:**
+- "Добавить другие товары" (высота 5rem, текст 1.375rem)
+- Переход на полный каталог
+- Сохранение режима (чтобы рекомендации остались доступны)
+
+**Логика:**
+- Загрузка рекомендаций через API (GET /api/recommendations/:sessionId)
+- Возможность добавления в корзину
+- Трекинг добавлений (для аналитики)
+- Переход к каталогу для дополнительного выбора
+
+---
+
+### Этап 7: Оптимизация производительности и латентности (3-4 дня)
+
+#### 7.1. Оптимизация STT
+**Задача:** Минимизировать задержку распознавания
+
+**Методы:**
+- Использование streaming режима (уже реализовано)
+- Отправка аудио малыми чанками (100ms)
+- Использование промежуточных результатов
+- Настройка VAD для быстрого определения конца речи
+
+**Целевые метрики:**
+- Латентность <300ms
+- Точность >90%
+
+#### 7.2. Оптимизация TTS
+**Задача:** Минимизировать задержку синтеза
+
+**Методы:**
+- Кэширование частых фраз (уже реализовано)
+- Параллельный синтез следующей реплики
+- Предзагрузка типовых фраз при старте
+- Chunked transfer (начало воспроизведения до полной загрузки)
+
+**Целевые метрики:**
+- Латентность синтеза <500ms
+- Латентность воспроизведения из кэша <50ms
+
+#### 7.3. Оптимизация AI-модели
+**Задача:** Ускорить ответы AI
+
+**Методы:**
+- Ограничение max_tokens до 150
+- Сокращение системного промпта
+- Ограничение истории (последние 10 сообщений)
+- Использование кэша для системного промпта (если API поддерживает)
+- Параллельный вызов AI и TTS (синтез начинается сразу после получения текста)
+
+**Целевые метрики:**
+- Латентность ответа AI <1 секунда
+- Общая латентность цикла <2 секунды
+
+#### 7.4. Кэширование и предзагрузка
+**Задача:** Минимизировать повторяющиеся запросы
+
+**Что кэшировать:**
+- Синтезированные типовые фразы (Redis + БД)
+- Системный промпт (если API поддерживает)
+- Список товаров для подбора (Redis, 10 минут)
+
+**Предзагрузка при старте:**
+- Загрузить в кэш 20 самых частых фраз AI
+- Синтезировать приветствие заранее
+- Прогреть соединения с API
+
+#### 7.5. Мониторинг латентности
+**Задача:** Отслеживать производительность в реальном времени
+
+**Метрики для логирования:**
+- STT latency (время от конца речи до получения текста)
+- AI latency (время обработки запроса в GPT)
+- TTS latency (время синтеза речи)
+- Total latency (общее время цикла)
+- Cache hit rate (процент попаданий в кэш)
+
+**Алерты:**
+- Если латентность >3 секунды - логировать warning
+- Если >5 секунд - критическая ошибка
+- Если cache hit rate <50% - пересмотреть стратегию кэширования
+
+---
+
+### Этап 8: Обработка краевых случаев (3-4 дня)
+
+#### 8.1. Обработка некорректного распознавания
+**Задача:** Справиться с ошибками STT
+
+**Сценарии:**
+- Не удалось распознать (пустой текст)
+- Очень низкая confidence (<0.5)
+- Слишком много фонового шума
+
+**Реакции AI:**
+- "Извините, не расслышал. Повторите пожалуйста?"
+- "Шумновато, говорите громче"
+- После 3 неудачных попыток - предложить текстовый ввод или пропустить
+
+#### 8.2. Обработка неадекватных ответов пользователя
+**Задача:** Обработать ответы не по теме
+
+**Сценарии:**
+- Пользователь шутит
+- Пользователь ругается
+- Пользователь отвечает не на вопрос
+- Пользователь говорит "не знаю"
+
+**Реакции AI:**
+- На шутки: мягко вернуть к теме
+- На "не знаю": предложить варианты
+- На ругань: не реагировать, задать следующий вопрос
+- Не по теме: вежливо уточнить
+
+**Примеры:**
+```
+User: "Не знаю что хочу"
+AI: "Понятно. Может, сладкое или горькое больше нравится?"
+
+User: "Погода плохая сегодня"
+AI: "Да, согласен. Как насчет чая - сладкое или горькое предпочитаете?"
+```
+
+#### 8.3. Обработка прерываний диалога
+**Задача:** Справиться с внезапным прерыванием
+
+**Сценарии:**
+- Пользователь ушел (долгое молчание >30 секунд)
+- Пользователь нажал "Стоп"
+- Технический сбой (разрыв WebSocket)
+
+**Действия:**
+- Сохранить частичный профиль (если есть хоть что-то)
+- Предложить вернуться или перейти к каталогу
+- При возврате - возможность продолжить или начать заново
+
+#### 8.4. Обработка отказа от AI
+**Задача:** Дать выход пользователю
+
+**Сценарии:**
+- Пользователь не хочет разговаривать
+- Пользователь просит показать меню сразу
+- Пользователь недоволен AI
+
+**Действия:**
+- Кнопка "Пропустить AI диалог" на экране выбора режима
+- В диалоге: кнопка "Покажи просто меню"
+- Вежливое завершение: "Хорошо, смотрите наш каталог!"
+
+#### 8.5. Обработка технических ошибок
+**Задача:** Обработать все возможные ошибки
+
+**Типы ошибок:**
+- Ошибка API STT (превышена квота, неверный ключ)
+- Ошибка API TTS
+- Ошибка OpenAI (rate limit, timeout)
+- Ошибка сети
+
+**Fallback стратегии:**
+- STT ошибка → переход на текстовый ввод
+- TTS ошибка → показать только текст
+- OpenAI ошибка → использовать шаблонные вопросы
+- Полный сбой → предложить обычный режим заказа
+
+---
+
+### Этап 9: Аналитика и улучшение AI (2-3 дня)
+
+#### 9.1. Сбор метрик
+**Задача:** Собрать данные для анализа качества AI
+
+**Метрики диалога:**
+- Длительность диалога (среднее, медиана)
+- Количество вопросов (среднее)
+- Процент завершенных диалогов
+- Процент прерванных диалогов
+- Причины прерываний
+
+**Метрики распознавания:**
+- Средний confidence score STT
+- Процент нераспознанных реплик
+- Наиболее частые ошибки распознавания
+
+**Метрики рекомендаций:**
+- Процент добавления в корзину (conversion)
+- Какие рекомендации добавляются чаще
+- Средний score рекомендаций
+- Корреляция score и conversion
+
+**Метрики производительности:**
+- Латентность на каждом этапе
+- Cache hit rate
+- Стоимость API вызовов
+
+#### 9.2. Дашборд аналитики
+**Задача:** Визуализировать метрики
+
+**Компоненты дашборда:**
+- График количества AI-диалогов по дням
+- Воронка: начато → завершено → добавлено в корзину
+- Распределение настроений пользователей
+- Топ-10 рекомендуемых товаров
+- Средняя латентность по этапам
+- Стоимость API за период
+
+**Доступ:**
+- Отдельная страница `/admin/ai-analytics`
+- Авторизация для администраторов
+- Экспорт данных в CSV
+
+#### 9.3. A/B тестирование промптов
+**Задача:** Оптимизировать системный промпт
+
+**Варианты для тестирования:**
+- Разные стили обращения (формальный/неформальный)
+- Разная длина вопросов
+- Разное количество вопросов (5 vs 7)
+- Разные первые вопросы
+
+**Метрики для сравнения:**
+- Процент завершения диалога
+- Конверсия в добавление товаров
+- Удовлетворенность (из оценок сервиса)
+
+#### 9.4. Обратная связь для улучшения
+**Задача:** Собрать фидбек от пользователей
+
+**Дополнительный вопрос после AI-диалога (опционально):**
+- "Понравился ли вам диалог с AI?" (Да/Нет)
+- Если Нет: "Что не понравилось?" (варианты ответов)
+
+**Использование:**
+- Выявление слабых мест AI
+- Улучшение промптов
+- Обучение команды
+
+---
+
+### Этап 10: Тестирование AI-части (4-5 дней)
+
+#### 10.1. Unit тесты сервисов
+**Задача:** Покрыть тестами AI-сервисы
+
+**Тесты STT Service:**
+- Корректная отправка аудио в API
+- Обработка успешного распознавания
+- Обработка ошибок API
+- Retry логика
+
+**Тесты TTS Service:**
+- Корректный синтез речи
+- Проверка кэша (hit/miss)
+- Обработка ошибок
+
+**Тесты Dialog Service:**
+- Создание сессии
+- Добавление сообщений
+- Определение завершения диалога
+- Сохранение истории
+
+**Тесты Analysis Service:**
+- Извлечение настроения из текста
+- Извлечение предпочтений
+- Создание профиля
+
+**Тесты Recommendation Service:**
+- Скоринг товаров по профилю
+- Выбор топ-6
+- Генерация обоснований
+- Разнообразие рекомендаций
+
+#### 10.2. Integration тесты
+**Задача:** Проверить работу полного пайплайна
+
+**Сценарий полного цикла:**
+1. Создание сессии диалога
+2. Отправка аудио (mock)
+3. Получение распознанного текста
+4. Получение ответа AI
+5. Синтез речи
+6. Анализ диалога
+7. Генерация рекомендаций
+
+**Проверки:**
+- Все этапы выполнены успешно
+- Латентность в пределах нормы
+- Данные сохранены в БД
+- Рекомендации релевантны
+
+#### 10.3. Тестирование с реальными голосами
+**Задача:** Проверить на реальных аудио записях
+
+**Тестовые записи:**
+- 10 разных голосов (мужские/женские, разные возрасты)
+- Разные сценарии (уставший, веселый, нейтральный)
+- Разное качество (тихо, шумно, нормально)
+- Разные акценты
+
+**Критерии:**
+- Распознавание корректное >90%
+- AI адекватно реагирует на ответы
+- Рекомендации соответствуют профилю
+
+#### 10.4. Нагрузочное тестирование
+**Задача:** Проверить работу под нагрузкой
+
+**Сценарии:**
+- 10 одновременных диалогов
+- 50 одновременных диалогов (пиковая нагрузка)
+- Проверка очередей и таймаутов
+
+**Метрики:**
+- Латентность не должна расти существенно
+- Все диалоги обрабатываются
+- Нет потери данных
+
+#### 10.5. Тестирование на Orange Pi
+**Задача:** Проверить на целевом железе
+
+**Проверки:**
+- Захват аудио с микрофона работает
+- WebSocket стабилен
+- Воспроизведение аудио без артефактов
+- UI отзывчив (нет лагов анимаций)
+- Потребление ресурсов в норме
+
+---
+
+### Этап 11: Документация и развертывание (2-3 дня)
+
+#### 11.1. Документация API
+**Задача:** Описать все AI-endpoints
+
+**Файл AI_API.md:**
+
+**Содержание:**
+- Описание архитектуры AI-части
+- WebSocket протокол для диалога
+- REST endpoints для рекомендаций
+- Форматы запросов и ответов
+- Примеры использования
+- Коды ошибок
+
+#### 11.2. Руководство по настройке
+**Задача:** Описать конфигурацию AI-сервисов
+
+**Файл AI_SETUP.md:**
+
+**Содержание:**
+- Получение API ключей (Yandex, OpenAI)
+- Настройка переменных окружения
+- Конфигурация параметров AI
+- Настройка кэширования
+- Мониторинг и логирование
+
+#### 11.3. Обновление .env и docker-compose
+**Задача:** Добавить новые переменные окружения
+
+**Новые переменные:**
+```
+# Yandex SpeechKit
+YANDEX_API_KEY=your_key
+YANDEX_FOLDER_ID=your_folder
+YANDEX_STT_ENDPOINT=stt.api.cloud.yandex.net:443
+YANDEX_TTS_ENDPOINT=tts.api.cloud.yandex.net:443
+
+# OpenAI
+OPENAI_API_KEY=your_key
+OPENAI_MODEL=gpt-4o
+OPENAI_TEMPERATURE=0.7
+OPENAI_MAX_TOKENS=150
+
+# AI Settings
+AI_DIALOG_MAX_QUESTIONS=7
+AI_DIALOG_TIMEOUT_SECONDS=60
+AI_RECOMMENDATION_COUNT=6
+
+# TTS Cache
+TTS_CACHE_TTL_SECONDS=86400
+TTS_CACHE_MAX_SIZE=100
+```
+
+#### 11.4. Миграции БД
+**Задача:** Применить новые миграции с AI-таблицами
+
+**Команды:**
+```bash
+# Создать миграцию
+npm run migrate:create add_ai_tables
+
+# Применить миграцию
+npm run migrate:up
+
+# Rollback (если нужно)
+npm run migrate:down
+```
+
+#### 11.5. Развертывание AI-части
+**Задача:** Развернуть обновленную версию
+
+**Шаги:**
+1. Остановить текущие контейнеры
+2. Обновить код из репозитория
+3. Применить миграции БД
+4. Обновить .env с API ключами
+5. Пересобрать Docker образы
+6. Запустить контейнеры
+7. Проверить работоспособность AI
+
+**Команды:**
+```bash
+docker-compose down
+git pull origin main
+docker-compose exec backend npm run migrate:up
+docker-compose up -d --build
+docker-compose logs -f backend
+```
+
+---
+
+### Этап 12: Финальная оптимизация и запуск (2-3 дня)
+
+#### 12.1. Оптимизация промптов
+**Задача:** Финализировать системный промпт на основе тестов
+
+**Корректировки:**
+- Сократить длину для экономии токенов
+- Уточнить тон и стиль
+- Добавить примеры хороших диалогов
+- Настроить температуру модели
+
+#### 12.2. Настройка мониторинга
+**Задача:** Настроить отслеживание AI-метрик
+
+**Что мониторить:**
+- Количество AI-диалогов в час
+- Процент успешных диалогов
+- Средняя латентность
+- Стоимость API вызовов
+- Количество ошибок
+
+**Алерты:**
+- Латентность >5 секунд
+- Процент ошибок >10%
+- Превышение бюджета API
+
+#### 12.3. Предзагрузка кэша
+**Задача:** Заполнить TTS кэш типовыми фразами
+
+**Скрипт предзагрузки:**
+- Синтезировать 50 наиболее частых фраз
+- Сохранить в Redis и БД
+- Проверить доступность
+
+**Типовые фразы:**
+- Приветствия (5 вариантов)
+- Уточнения (10 вариантов)
+- Реакции на настроение (15 вариантов)
+- Завершения (5 вариантов)
+
+#### 12.4. Тренировочный запуск
+**Задача:** Протестировать с реальными пользователями
+
+**Soft launch:**
+- Включить AI-режим только на одном терминале
+- Пригласить тестовых пользователей
+- Собрать обратную связь
+- Исправить выявленные проблемы
+
+**Сбор фидбека:**
+- Понравился ли AI-диалог?
+- Были ли трудности?
+- Соответствуют ли рекомендации ожиданиям?
+
+#### 12.5. Официальный запуск
+**Задача:** Включить AI на всех терминалах
+
+**Действия:**
+- Развернуть финальную версию
+- Включить AI-режим на всех терминалах
+- Мониторить метрики в первые дни
+- Быть готовым к быстрым исправлениям
+
+**Коммуникация:**
+- Обучить персонал работе с AI-терминалами
+- Объяснить что делать при ошибках
+- Подготовить FAQ для клиентов
+
+---
+
+## 6. Критерии приемки AI-этапа
+
+### 6.1. Функциональные требования
 
 **Голосовое взаимодействие:**
-- [ ] Микрофон работает и записывает звук
-- [ ] Запись останавливается корректно
-- [ ] STT распознает русскую речь правильно
-- [ ] TTS генерирует понятный голос
-- [ ] Аудио воспроизводится автоматически
+- ✅ STT распознает речь с точностью >90%
+- ✅ TTS синтезирует естественную речь
+- ✅ Диалог ведется на русском языке
+- ✅ AI задает релевантные вопросы (5-7 вопросов)
+- ✅ AI адаптируется под ответы пользователя
 
-**AI-диалог:**
-- [ ] Первое приветствие генерируется
-- [ ] AI задает адекватные вопросы
-- [ ] AI адаптируется к ответам пользователя
-- [ ] Диалог завершается после 3-5 реплик
-- [ ] Рекомендации генерируются корректно
+**Анализ и рекомендации:**
+- ✅ Профиль пользователя создается корректно
+- ✅ Рекомендации соответствуют профилю (>80% релевантности)
+- ✅ Обоснования персонализированы
+- ✅ Топ-6 товаров разнообразны
 
-**Интеграция:**
-- [ ] Переход с выбора режима на AI-диалог работает
-- [ ] Рекомендации отображаются на странице
-- [ ] Товары можно добавлять в корзину
-- [ ] Переход к обычному меню работает
+**UI и UX:**
+- ✅ Экран AI-диалога понятен и удобен
+- ✅ Анимации работают плавно
+- ✅ Статусы диалога отображаются
+- ✅ Возможность прервать диалог
+
+### 6.2. Технические требования
 
 **Производительность:**
-- [ ] Латентность STT < 500 мс
-- [ ] Латентность TTS < 500 мс
-- [ ] Латентность GPT < 2 сек
-- [ ] Общее время ответа < 3 сек
+- ✅ Латентность STT <300ms
+- ✅ Латентность TTS <500ms
+- ✅ Латентность AI <1s
+- ✅ Общая латентность цикла <2-3s
+- ✅ Cache hit rate >50%
+
+**Надежность:**
+- ✅ Обработка всех ошибок API
+- ✅ Fallback стратегии работают
+- ✅ Сохранение данных в БД
+- ✅ WebSocket стабилен
+
+**Масштабируемость:**
+- ✅ Поддержка 10+ одновременных диалогов
+- ✅ Очереди не переполняются
+- ✅ Стоимость API в бюджете
+
+### 6.3. Бизнес-метрики
+
+**Конверсия:**
+- ✅ >60% пользователей завершают диалог
+- ✅ >40% добавляют рекомендации в корзину
+- ✅ Средний чек AI > среднего чека обычного заказа
+
+**Удовлетворенность:**
+- ✅ Средняя оценка AI-опыта >7/10
+- ✅ Процент жалоб <5%
 
 ---
 
-## 🎬 Заключение AI-части
+## 7. Потенциальные проблемы и решения
 
-### Что было реализовано:
+### 7.1. Высокая латентность
+**Проблема:** Диалог кажется медленным
 
-✅ **Голосовые технологии:**
-- Yandex SpeechKit для STT/TTS
-- Кэширование частых фраз TTS
-- Обработка аудио потоков
+**Решения:**
+- Оптимизация всех этапов пайплайна
+- Параллельные запросы где возможно
+- Кэширование агрессивное
+- Уменьшение max_tokens AI
 
-✅ **AI-агент:**
-- OpenAI GPT-4o интеграция
-- Персонализированные промпты
-- Контекстный диалог
-- Генерация рекомендаций
+### 7.2. Плохое качество распознавания в шумной обстановке
+**Проблема:** В кафе может быть шумно
 
-✅ **Backend:**
-- AI Dialog Service (микросервис)
-- Роуты для диалога
-- Управление сессиями
+**Решения:**
+- Направленный микрофон
+- Шумоподавление на уровне аудио
+- Повышение порога уверенности STT
+- Просьба повторить при низкой confidence
 
-✅ **Frontend:**
-- Страница AI-диалога
-- Запись и воспроизведение аудио
-- Страница рекомендаций
-- Интеграция с базовой частью
+### 7.3. Неестественные диалоги
+**Проблема:** AI звучит роботизированно
 
-### Что НЕ реализовано (опционально):
+**Решения:**
+- Итерации над системным промптом
+- A/B тестирование разных стилей
+- Добавление примеров в промпт
+- Настройка temperature модели
 
-❌ WebSocket для real-time стриминга
-❌ gRPC для streaming STT
-❌ Локальная Llama-3 (альтернатива OpenAI)
-❌ Расширенная аналитика диалогов
-❌ A/B тестирование промптов
+### 7.4. Нерелевантные рекомендации
+**Проблема:** Товары не соответствуют ожиданиям
+
+**Решения:**
+- Улучшение алгоритма скоринга
+- Добавление больше весов и факторов
+- Сбор обратной связи и обучение
+- Ручная корректировка весов
+
+### 7.5. Высокая стоимость API
+**Проблема:** OpenAI API дорог
+
+**Решения:**
+- Агрессивное кэширование
+- Сокращение промптов
+- Ограничение max_tokens
+- Переход на Llama-3 локально (долгосрочно)
 
 ---
 
-## 🎯 Следующие шаги
+## 8. Метрики успеха
 
-После завершения AI-части переходите к документу **DevelopmentPlan_Final.md**, где будет описана:
-- Оптимизация производительности
-- Сборка терминала на Orange Pi
-- Настройка kiosk-режима
-- Финальное тестирование
-- Развертывание в кафе
+### 8.1. Технические метрики
+- Латентность общая <3 секунды
+- Точность STT >90%
+- Cache hit rate >50%
+- Uptime AI-сервисов >99%
+
+### 8.2. Пользовательские метрики
+- Завершение диалога >60%
+- Конверсия в корзину >40%
+- Удовлетворенность AI >7/10
+- Повторное использование AI
+
+### 8.3. Бизнес-метрики
+- Доля AI-заказов >30% от общих
+- Средний чек AI выше обычного на 15%+
+- Стоимость API <500₽ в день
 
 ---
 
-**Версия документа:** 1.0  
-**Дата создания:** 7 ноября 2024  
-**Статус:** Готово для интеграции AI и голосовых технологий
+## 9. Следующие шаги после AI-этапа
+
+После завершения AI-этапа разработки:
+
+1. **Интеграция с базовой частью** (следующий этап)
+   - Объединение всех компонентов
+   - Финальное тестирование
+   - Оптимизация
+
+2. **Pilot запуск**
+   - Тестирование на реальных клиентах
+   - Сбор метрик и обратной связи
+   - Итерации улучшений
+
+3. **Развитие AI**
+   - Добавление китайского языка
+   - Распознавание эмоций по голосу
+   - Персонализация для постоянных клиентов
+
+---
+
+## Заключение
+
+План разработки AI-части проекта AI-Cha Terminal описывает полную интеграцию голосового AI-агента в терминал самообслуживания. 
+
+**Ключевые принципы AI-этапа:**
+- Тонкий клиент (вся обработка на сервере)
+- Низкая латентность (<3 секунды полный цикл)
+- Естественный диалог (не роботизированный)
+- Персонализированные рекомендации
+- Надежная обработка ошибок
+
+**Технологический стек AI:**
+- Yandex SpeechKit (STT/TTS)
+- OpenAI GPT-4o (диалог)
+- WebSocket (потоковое аудио)
+- Redis (кэширование TTS)
+- PostgreSQL (хранение диалогов)
+
+**Расчетное время разработки:** 5-7 недель для команды из 2-3 разработчиков.
+
+После завершения этого этапа система будет готова к финальной интеграции и запуску в реальных условиях кафе.
+
