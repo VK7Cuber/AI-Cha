@@ -20,8 +20,25 @@ const fastify = Fastify({
 
 await fastify.register(helmet);
 await fastify.register(cors, { origin: true });
-await fastify.register(compress);
-fastify.addHook('onRequest', loggerHook);
+// В dev-режиме отключаем gzip-сжатие, т.к. Safari/Brave иногда
+// игнорируют chunked ответы с Content-Length: 0
+if (process.env.NODE_ENV !== 'development') {
+  await fastify.register(compress);
+}
+fastify.addHook('onRequest', (request, _reply, done) => {
+  request.startTime = Date.now();
+  done();
+});
+fastify.addHook('onResponse', loggerHook);
+fastify.addHook('onError', (request, reply, error, done) => {
+  if (error && error.message === 'premature close') {
+    request.log.warn({ err: error, url: request.url }, 'client closed connection');
+    reply.raw.destroy(); // гарантируем закрытие без ответа
+    done();
+    return;
+  }
+  done();
+});
 
 registerRoutes(fastify);
 fastify.setErrorHandler(errorHandler);

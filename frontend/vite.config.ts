@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
+  const targetBase = (env.VITE_API_URL || 'http://localhost:8080').replace(/\/api\/?$/, '');
 
   return {
     plugins: [react()],
@@ -11,7 +12,7 @@ export default defineConfig(({ mode }) => {
       host: '0.0.0.0',
       proxy: {
         '/api': {
-          target: env.VITE_API_URL || 'http://localhost:8080',
+          target: targetBase,
           changeOrigin: true
         }
       }

@@ -4,14 +4,53 @@
 
 :root {
   font-family: 'Inter', 'Noto Sans SC', system-ui, -apple-system, sans-serif;
-  color: #212121;
-  background-color: #ffffff;
+  --color-primary: #D32F2F;
+  --color-primary-hover: #B71C1C;
+  --color-primary-active: #9c2424;
+  --color-gold: #FFD700;
+  --color-gold-hover: #e6c200;
+  --color-gold-active: #ccad00;
+  --color-green: #388E3C;
+  --color-green-hover: #2f7a32;
+  --color-green-active: #27662a;
+  --color-gray: #757575;
+  --color-gray-light: #E0E0E0;
+  --color-gray-lighter: #F2F2F2;
+  --color-background: #FAFAFA;
+  --color-surface: #FFFFFF;
+  --color-surface-elevated: #FFFFFF;
+  --color-text-primary: #212121;
+  --color-text-secondary: #757575;
+  color: var(--color-text-primary);
+  background-color: var(--color-background);
+  transition: background-color 0.35s ease, color 0.35s ease, border-color 0.35s ease;
+}
+
+.dark {
+  --color-primary: #EF5350;
+  --color-primary-hover: #F44336;
+  --color-primary-active: #E53935;
+  --color-gold: #FFD54F;
+  --color-gold-hover: #FBC02D;
+  --color-gold-active: #F9A825;
+  --color-green: #66BB6A;
+  --color-green-hover: #57A45C;
+  --color-green-active: #4D8F50;
+  --color-gray: #9E9E9E;
+  --color-gray-light: #424242;
+  --color-gray-lighter: #2D2D2D;
+  --color-background: #121212;
+  --color-surface: #1E1E1E;
+  --color-surface-elevated: #2D2D2D;
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #B0B0B0;
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  background: linear-gradient(180deg, #fff8f6 0%, #ffffff 40%);
+  background: linear-gradient(180deg, var(--color-background) 0%, var(--color-surface) 40%);
+  transition: background 0.35s ease, color 0.35s ease;
 }
 
 #root {

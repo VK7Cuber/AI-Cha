@@ -1,32 +1,35 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-const AUTO_REDIRECT_MS = 10000;
+import Button from '../../common/Button/Button';
+import ThemeToggle from '../../common/ThemeToggle/ThemeToggle';
 
 function WelcomeScreen() {
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const timer = setTimeout(() => navigate('/mode'), AUTO_REDIRECT_MS);
-    return () => clearTimeout(timer);
-  }, [navigate]);
-
   const handleStart = () => navigate('/mode');
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gradient-to-b from-red-50 via-white to-white text-center text-[#212121]">
-      <div className="mb-6 text-5xl font-bold text-[#D32F2F]">AI-Cha</div>
-      <div className="space-y-2 text-3xl font-semibold">
-        <div>Добро пожаловать в AI Cha!</div>
-        <div className="text-2xl text-[#757575]">欢迎来到爱茶!</div>
+    <div
+      className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-gradient-to-b from-primary/5 via-background to-surface text-center text-textPrimary transition-colors"
+      onClick={handleStart}
+      role="button"
+      tabIndex={0}
+      onKeyDown={(e) => e.key === 'Enter' && handleStart()}
+    >
+      <div className="absolute right-4 top-4">
+        <ThemeToggle />
       </div>
-      <button
-        type="button"
-        onClick={handleStart}
-        className="mt-10 rounded-full bg-[#D32F2F] px-8 py-4 text-2xl font-semibold text-white shadow-lg transition hover:scale-105 active:scale-95"
-      >
+
+      <div className="mb-6 text-h1 font-bold text-primary animate-fadeIn">AI-Cha</div>
+      <div className="space-y-2 text-h2 font-semibold animate-fadeIn" style={{ animationDelay: '0.1s' }}>
+        <div>Добро пожаловать в AI Cha!</div>
+        <div className="text-h3 text-textSecondary">欢迎来到爱茶!</div>
+      </div>
+      <Button className="mt-10" size="large">
         Нажмите, чтобы начать
-      </button>
+      </Button>
+
+      <div className="absolute bottom-8 text-button text-textSecondary animate-pulseSoft">Нажмите на экран для начала</div>
     </div>
   );
 }

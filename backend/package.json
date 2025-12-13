@@ -11,7 +11,9 @@
     "db:migrate": "sequelize-cli db:migrate",
     "db:migrate:undo": "sequelize-cli db:migrate:undo",
     "db:seed": "sequelize-cli db:seed:all",
-    "db:seed:undo": "sequelize-cli db:seed:undo:all"
+    "db:seed:undo": "sequelize-cli db:seed:undo:all",
+    "menu:load": "node scripts/load-menu.js",
+    "menu:list": "node scripts/list-menu.js"
   },
   "dependencies": {
     "@fastify/compress": "^7.0.0",

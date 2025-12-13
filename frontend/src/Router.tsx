@@ -6,15 +6,16 @@ import CartScreen from './components/screens/CartScreen/CartScreen';
 import PaymentScreen from './components/screens/PaymentScreen/PaymentScreen';
 import RatingScreen from './components/screens/RatingScreen/RatingScreen';
 import RecommendationsScreen from './components/screens/RecommendationsScreen/RecommendationsScreen';
+import { PageTransition } from './components/animations/PageTransition/PageTransition';
 
 const router = createBrowserRouter([
-  { path: '/', element: <WelcomeScreen /> },
-  { path: '/mode', element: <ModeSelectionScreen /> },
-  { path: '/catalog', element: <CatalogScreen /> },
-  { path: '/cart', element: <CartScreen /> },
-  { path: '/payment', element: <PaymentScreen /> },
-  { path: '/rating', element: <RatingScreen /> },
-  { path: '/recommendations', element: <RecommendationsScreen /> }
+  { path: '/', element: <PageTransition><WelcomeScreen /></PageTransition> },
+  { path: '/mode', element: <PageTransition><ModeSelectionScreen /></PageTransition> },
+  { path: '/catalog', element: <PageTransition><CatalogScreen /></PageTransition> },
+  { path: '/cart', element: <PageTransition><CartScreen /></PageTransition> },
+  { path: '/payment', element: <PageTransition><PaymentScreen /></PageTransition> },
+  { path: '/rating', element: <PageTransition><RatingScreen /></PageTransition> },
+  { path: '/recommendations', element: <PageTransition><RecommendationsScreen /></PageTransition> }
 ]);
 
 export function AppRouter() {

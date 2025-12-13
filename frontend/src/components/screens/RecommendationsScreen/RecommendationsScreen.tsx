@@ -1,4 +1,7 @@
 import { Link } from 'react-router-dom';
+import ThemeToggle from '../../common/ThemeToggle/ThemeToggle';
+import Card from '../../common/Card/Card';
+import Button from '../../common/Button/Button';
 
 const placeholderItems = [
   { id: 'r1', nameRu: 'Успокаивающий сбор', nameZh: '舒缓茶', reason: 'Подходит вашему настроению' },
@@ -7,26 +10,28 @@ const placeholderItems = [
 
 function RecommendationsScreen() {
   return (
-    <div className="mx-auto flex min-h-screen max-w-4xl flex-col gap-6 bg-white px-6 py-8">
-      <header className="text-3xl font-bold text-[#D32F2F]">Рекомендации для вас</header>
+    <div className="min-h-screen bg-background text-textPrimary transition-colors">
+      <header className="flex items-center justify-between bg-surface px-6 py-4 shadow-md">
+        <div className="text-h2 font-bold text-primary">Рекомендации для вас</div>
+        <ThemeToggle />
+      </header>
 
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {placeholderItems.map((item) => (
-          <div key={item.id} className="rounded-2xl border border-gray-100 bg-[#fff8f6] p-4 shadow-sm">
-            <div className="text-xl font-semibold">{item.nameRu}</div>
-            <div className="text-[#757575]">{item.nameZh}</div>
-            <div className="mt-2 text-sm text-[#388E3C]">{item.reason}</div>
-          </div>
-        ))}
-      </div>
+      <main className="mx-auto flex max-w-4xl flex-col gap-6 px-6 py-8">
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          {placeholderItems.map((item) => (
+            <Card key={item.id} variant="elevated">
+              <div className="text-h3 font-semibold">{item.nameRu}</div>
+              <div className="text-textSecondary">{item.nameZh}</div>
+              <div className="mt-2 text-small text-green">{item.reason}</div>
+            </Card>
+          ))}
+        </div>
+      </main>
 
-      <footer className="mt-auto flex justify-end">
-        <Link
-          to="/catalog"
-          className="rounded-full bg-[#D32F2F] px-8 py-4 text-xl font-semibold text-white transition hover:scale-105 active:scale-95"
-        >
+      <footer className="sticky bottom-0 flex justify-end bg-surface px-6 py-4 shadow-inner">
+        <Button as="a" href="/catalog" size="large">
           Добавить другие товары
-        </Link>
+        </Button>
       </footer>
     </div>
   );
