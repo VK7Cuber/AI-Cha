@@ -6,6 +6,7 @@ import { useProductsStore } from '../../../store/productsStore';
 import { useCartStore } from '../../../store/cartStore';
 import ProductCard from '../../products/ProductCard/ProductCard';
 import Button from '../../common/Button/Button';
+import logo from '../../../img/AI_Cha_logo.png';
 
 function CatalogScreen() {
   const { products, loading, error, loadAll, categories } = useProductsStore();
@@ -33,29 +34,42 @@ function CatalogScreen() {
   }, [activeCategory, list, search]);
 
   return (
-    <div className="min-h-screen bg-background text-textPrimary transition-colors">
-      <header className="sticky top-0 z-10 flex items-center justify-between bg-surface px-6 py-4 shadow-md">
-        <div className="text-h1 font-bold text-primary">Каталог</div>
-        <div className="flex items-center gap-3">
-          <div className="hidden sm:block">
-            <input
-              className="w-72 rounded-2xl border border-grayLight bg-surfaceElevated px-4 py-4 text-h3 text-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-              placeholder="Поиск..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
+    <div className="relative min-h-screen bg-gradient-to-b from-primary/10 via-surface to-background text-textPrimary transition-colors">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute left-6 top-10 h-64 w-64 rounded-full bg-primary/15 blur-3xl" />
+        <div className="absolute right-8 top-24 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute right-6 bottom-16 h-72 w-72 rounded-full bg-gold/12 blur-3xl" />
+        <div className="absolute left-10 bottom-10 h-60 w-60 rounded-full bg-primary/10 blur-3xl" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_65%_20%,rgba(255,255,255,0.07),transparent_32%),radial-gradient(circle_at_25%_80%,rgba(255,255,255,0.06),transparent_28%)]" />
+      </div>
+
+      <header className="sticky top-0 z-20 bg-surface/85 backdrop-blur-md shadow-md">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-6 py-4">
+          <div className="flex items-center gap-3">
+            <img src={logo} alt="AI Cha" className="h-11 w-auto object-contain" />
+            <div className="text-h1 font-bold text-primary">Каталог</div>
           </div>
-          <ThemeToggle />
-          <Link
-            to="/cart"
-            className="rounded-full bg-primary px-7 py-4 text-h2 font-semibold text-white shadow-lg transition hover:scale-105 active:scale-95"
-          >
-            Корзина
-          </Link>
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:block">
+              <input
+                className="w-72 rounded-2xl border border-grayLight bg-surfaceElevated/90 px-4 py-4 text-h3 text-textPrimary shadow-inner focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                placeholder="Поиск..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+            <ThemeToggle />
+            <Link
+              to="/cart"
+              className="rounded-full bg-primary px-7 py-4 text-h2 font-semibold text-white shadow-lg transition hover:scale-105 active:scale-95"
+            >
+              Корзина
+            </Link>
+          </div>
         </div>
       </header>
 
-      <main className="mx-auto flex max-w-5xl flex-col gap-4 px-6 py-6">
+      <main className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-6 pb-10 pt-6">
         <div className="sm:hidden">
           <input
             className="w-full rounded-2xl border border-grayLight bg-surface px-4 py-4 text-h3 text-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
@@ -87,17 +101,21 @@ function CatalogScreen() {
           </div>
         )}
 
-        {loading && <Loading text="Загружаем каталог..." />}
-        {error && <div className="rounded-2xl bg-surface p-4 text-textSecondary">Ошибка: {error}</div>}
+        {loading && (
+          <div className="rounded-3xl bg-surface/70 p-6 shadow-lg backdrop-blur">
+            <Loading text="Загружаем каталог..." />
+          </div>
+        )}
+        {error && <div className="rounded-3xl bg-surface/80 p-6 text-h3 text-primary shadow-lg backdrop-blur">Ошибка: {error}</div>}
 
         {!loading && !error && (
           <>
             {filtered.length === 0 ? (
-              <div className="rounded-2xl bg-surface p-6 text-h3 text-textSecondary">
+              <div className="rounded-3xl bg-surface/80 p-8 text-center text-h3 text-textSecondary shadow-lg backdrop-blur">
                 Товары не найдены. Измените поиск или категорию.
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 {filtered.map((product) => (
                   <ProductCard key={product.id} product={product} onAdd={(p) => addItem(p, 1)} />
                 ))}
@@ -107,14 +125,13 @@ function CatalogScreen() {
         )}
       </main>
 
-      <footer className="sticky bottom-0 flex justify-end bg-surface px-6 py-5 shadow-inner">
-        <Link
-          to="/payment"
-          className="rounded-full bg-primary px-8 py-5 text-h2 font-semibold text-white transition hover:scale-105 active:scale-95"
-        >
-          Перейти к оплате
-        </Link>
-      </footer>
+      <Link
+        to="/payment"
+        aria-label="Перейти к оплате"
+        className="fixed bottom-6 right-6 z-30 flex h-20 w-20 items-center justify-center rounded-full bg-primary text-h1 text-white shadow-xl transition hover:scale-105 active:scale-95"
+      >
+        💰
+      </Link>
     </div>
   );
 }

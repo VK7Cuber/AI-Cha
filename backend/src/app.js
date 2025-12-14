@@ -23,7 +23,7 @@ await fastify.register(cors, { origin: true });
 // В dev-режиме отключаем gzip-сжатие, т.к. Safari/Brave иногда
 // игнорируют chunked ответы с Content-Length: 0
 if (process.env.NODE_ENV !== 'development') {
-  await fastify.register(compress);
+await fastify.register(compress);
 }
 fastify.addHook('onRequest', (request, _reply, done) => {
   request.startTime = Date.now();
