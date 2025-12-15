@@ -24,3 +24,8 @@ export async function fetchCategories(): Promise<Category[]> {
   return res.data;
 }
 
+export async function fetchRecommended(limit = 6): Promise<Product[]> {
+  const res = await api.get<Product[]>('/products/recommended', { params: { limit } });
+  return res.data;
+}
+

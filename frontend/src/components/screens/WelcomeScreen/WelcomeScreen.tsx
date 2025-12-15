@@ -52,7 +52,7 @@ function WelcomeScreen() {
         <div className="absolute right-4 top-16 h-52 w-52 rounded-full bg-primary/14 blur-3xl" />
         <div className="absolute right-10 bottom-12 h-72 w-72 rounded-full bg-gold/14 blur-3xl" />
         <div className="absolute left-6 bottom-10 h-60 w-60 rounded-full bg-primary/12 blur-3xl" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_25%,rgba(255,255,255,0.08),transparent_32%),radial-gradient(circle_at_75%_75%,rgba(255,255,255,0.06),transparent_28%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_25%,var(--glow-1),transparent_32%),radial-gradient(circle_at_75%_75%,var(--glow-2),transparent_28%)]" />
       </div>
 
       <div className="z-10 flex max-w-3xl flex-col items-center gap-6 px-6">

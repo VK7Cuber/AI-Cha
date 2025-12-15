@@ -21,6 +21,9 @@
   --color-surface-elevated: #FFFFFF;
   --color-text-primary: #212121;
   --color-text-secondary: #757575;
+  /* Яркость подсветок для светлой темы */
+  --glow-1: rgba(255, 255, 255, 0.2);
+  --glow-2: rgba(255, 255, 255, 0.14);
   color: var(--color-text-primary);
   background-color: var(--color-background);
   transition: background-color 0.35s ease, color 0.35s ease, border-color 0.35s ease;
@@ -44,6 +47,9 @@
   --color-surface-elevated: #2D2D2D;
   --color-text-primary: #FFFFFF;
   --color-text-secondary: #B0B0B0;
+  /* И чуть мягче в тёмной теме, но заметно */
+  --glow-1: rgba(255, 255, 255, 0.12);
+  --glow-2: rgba(255, 255, 255, 0.08);
 }
 
 body {

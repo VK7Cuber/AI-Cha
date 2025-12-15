@@ -40,7 +40,7 @@ function CatalogScreen() {
         <div className="absolute right-8 top-24 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
         <div className="absolute right-6 bottom-16 h-72 w-72 rounded-full bg-gold/12 blur-3xl" />
         <div className="absolute left-10 bottom-10 h-60 w-60 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_65%_20%,rgba(255,255,255,0.07),transparent_32%),radial-gradient(circle_at_25%_80%,rgba(255,255,255,0.06),transparent_28%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_65%_20%,var(--glow-1),transparent_32%),radial-gradient(circle_at_25%_80%,var(--glow-2),transparent_28%)]" />
       </div>
 
       <header className="sticky top-0 z-20 bg-surface/85 backdrop-blur-md shadow-md">
@@ -52,10 +52,11 @@ function CatalogScreen() {
           <div className="flex items-center gap-3">
             <div className="hidden sm:block">
               <input
-                className="w-72 rounded-2xl border border-grayLight bg-surfaceElevated/90 px-4 py-4 text-h3 text-textPrimary shadow-inner focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                className="w-72 rounded-2xl border border-grayLight bg-surfaceElevated/90 px-4 py-4 text-h3 text-textPrimary shadow-inner focus:outline-none focus-visible:ring-2 focus-visible:ring-primary placeholder:text-textSecondary"
                 placeholder="Поиск..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
+                style={{ backgroundColor: 'var(--color-surface-elevated)', color: 'var(--color-text-primary)' }}
               />
             </div>
             <ThemeToggle />
@@ -72,10 +73,11 @@ function CatalogScreen() {
       <main className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-6 pb-10 pt-6">
         <div className="sm:hidden">
           <input
-            className="w-full rounded-2xl border border-grayLight bg-surface px-4 py-4 text-h3 text-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+            className="w-full rounded-2xl border border-grayLight bg-surface px-4 py-4 text-h3 text-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary placeholder:text-textSecondary"
             placeholder="Поиск..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            style={{ backgroundColor: 'var(--color-surface)', color: 'var(--color-text-primary)' }}
           />
         </div>
 
@@ -128,9 +130,9 @@ function CatalogScreen() {
       <Link
         to="/payment"
         aria-label="Перейти к оплате"
-        className="fixed bottom-6 right-6 z-30 flex h-20 w-20 items-center justify-center rounded-full bg-primary text-h1 text-white shadow-xl transition hover:scale-105 active:scale-95"
+        className="fixed bottom-6 right-6 z-30 flex h-20 w-20 items-center justify-center rounded-full bg-primary text-white shadow-xl transition hover:scale-105 active:scale-95"
       >
-        💰
+        <p className="text-h1">₽</p>
       </Link>
     </div>
   );

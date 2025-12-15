@@ -39,7 +39,7 @@ function ModeSelectionScreen() {
         <div className="absolute left-10 top-20 h-56 w-56 rounded-full bg-primary/12 blur-3xl" />
         <div className="absolute left-12 bottom-14 h-72 w-72 rounded-full bg-gold/14 blur-3xl" />
         <div className="absolute right-8 bottom-16 h-64 w-64 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_25%,rgba(255,255,255,0.08),transparent_32%),radial-gradient(circle_at_25%_75%,rgba(255,255,255,0.06),transparent_28%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_25%,var(--glow-1),transparent_32%),radial-gradient(circle_at_25%_75%,var(--glow-2),transparent_28%)]" />
       </div>
 
       <div className="absolute right-4 top-4 z-10">

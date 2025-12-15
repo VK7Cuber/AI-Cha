@@ -20,7 +20,7 @@ function CartScreen() {
         <div className="absolute right-8 top-20 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
         <div className="absolute right-6 bottom-16 h-72 w-72 rounded-full bg-gold/12 blur-3xl" />
         <div className="absolute left-10 bottom-12 h-60 w-60 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_65%_20%,rgba(255,255,255,0.07),transparent_32%),radial-gradient(circle_at_25%_80%,rgba(255,255,255,0.06),transparent_28%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_65%_20%,var(--glow-1),transparent_32%),radial-gradient(circle_at_25%_80%,var(--glow-2),transparent_28%)]" />
       </div>
 
       <header className="sticky top-0 z-20 bg-surface/85 backdrop-blur-md shadow-md">

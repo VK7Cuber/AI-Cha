@@ -1,19 +1,33 @@
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import ThemeToggle from '../../common/ThemeToggle/ThemeToggle';
 import Button from '../../common/Button/Button';
 import logo from '../../../img/AI_Cha_logo.png';
+import { submitRating } from '../../../services/ratingService';
 
 const stars = Array.from({ length: 10 }, (_, idx) => idx + 1);
 
 function RatingScreen() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const state = (location.state || {}) as { orderId?: string };
   const [hover, setHover] = useState<number | null>(null);
   const [selected, setSelected] = useState<number | null>(null);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleRate = (value: number) => {
+    if (sending) return;
     setSelected(value);
-    setTimeout(() => navigate('/'), 800);
+    setError(null);
+    setSending(true);
+    const orderId = state.orderId;
+    submitRating({ orderId: orderId || 'unknown-order', rating: value, terminalId: 'terminal-1' })
+      .catch((err: any) => setError(err?.message || 'Не удалось отправить оценку'))
+      .finally(() => {
+        setSending(false);
+        setTimeout(() => navigate('/'), 800);
+      });
   };
 
   const label = useMemo(() => {
@@ -29,7 +43,7 @@ function RatingScreen() {
         <div className="absolute right-8 top-20 h-56 w-56 rounded-full bg-primary/10 blur-3xl" />
         <div className="absolute right-6 bottom-16 h-72 w-72 rounded-full bg-gold/12 blur-3xl" />
         <div className="absolute left-10 bottom-12 h-60 w-60 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_65%_20%,rgba(255,255,255,0.07),transparent_32%),radial-gradient(circle_at_25%_80%,rgba(255,255,255,0.06),transparent_28%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_65%_20%,var(--glow-1),transparent_32%),radial-gradient(circle_at_25%_80%,var(--glow-2),transparent_28%)]" />
       </div>
 
       <header className="sticky top-0 z-20 bg-surface/85 backdrop-blur-md shadow-md">
@@ -83,6 +97,9 @@ function RatingScreen() {
         >
           Пропустить
         </button>
+
+        {error && <div className="text-h3 text-primary">Ошибка: {error}</div>}
+        {sending && <div className="text-button text-textSecondary">Отправляем...</div>}
       </main>
     </div>
   );
