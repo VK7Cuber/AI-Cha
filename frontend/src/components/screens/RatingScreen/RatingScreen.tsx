@@ -22,7 +22,15 @@ function RatingScreen() {
     setError(null);
     setSending(true);
     const orderId = state.orderId;
-    submitRating({ orderId: orderId || 'unknown-order', rating: value, terminalId: 'terminal-1' })
+
+    // Если нет реального orderId, просто завершаем без запроса, чтобы не слать невалидный UUID
+    if (!orderId) {
+      setSending(false);
+      setTimeout(() => navigate('/'), 800);
+      return;
+    }
+
+    submitRating({ orderId, rating: value, terminalId: 'terminal-1' })
       .catch((err: any) => setError(err?.message || 'Не удалось отправить оценку'))
       .finally(() => {
         setSending(false);

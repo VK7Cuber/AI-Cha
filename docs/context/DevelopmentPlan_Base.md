@@ -18,11 +18,12 @@
 - Backend API для управления данными
 - База данных для хранения товаров и заказов
 
-**Исключено (реализуется на следующих этапах):**
-- AI-диалог и подбор товаров
+**Исключено (реализуется на AI-этапе, см. DevelopmentPlan_AI.md):**
+- AI-диалог с клиентом (голосовой)
+- **Генерация уникальных рецептов напитков** (AI не подбирает из меню, а придумывает персональный рецепт)
 - Распознавание речи (STT)
 - Синтез речи (TTS)
-- Интеграция с AI-моделями
+- Интеграция с AI-моделями (GPT-4o)
 - Реальная оплата (только заглушки)
 
 ### 1.3. Целевой результат
@@ -46,15 +47,19 @@ AI-Cha/
 │   ├── src/
 │   │   ├── api/                            # API endpoints
 │   │   │   ├── routes/
-│   │   │   │   ├── products.js            # Маршруты для товаров
+│   │   │   │   ├── products.js            # Маршруты для стандартных товаров
 │   │   │   │   ├── orders.js              # Маршруты для заказов
 │   │   │   │   ├── categories.js          # Маршруты для категорий
-│   │   │   │   └── ratings.js             # Маршруты для оценок
+│   │   │   │   ├── ratings.js             # Маршруты для оценок
+│   │   │   │   ├── ingredients.js         # Маршруты для ингредиентов
+│   │   │   │   └── recipes.js             # Маршруты для базовых рецептов
 │   │   │   ├── controllers/
 │   │   │   │   ├── productController.js   # Логика работы с товарами
 │   │   │   │   ├── orderController.js     # Логика работы с заказами
 │   │   │   │   ├── categoryController.js  # Логика категорий
-│   │   │   │   └── ratingController.js    # Логика оценок
+│   │   │   │   ├── ratingController.js    # Логика оценок
+│   │   │   │   ├── ingredientController.js # Логика ингредиентов
+│   │   │   │   └── recipeController.js    # Логика базовых рецептов
 │   │   │   └── middleware/
 │   │   │       ├── validation.js          # Валидация запросов
 │   │   │       ├── errorHandler.js        # Обработка ошибок
@@ -62,8 +67,12 @@ AI-Cha/
 │   │   │
 │   │   ├── database/                       # Работа с БД
 │   │   │   ├── models/
-│   │   │   │   ├── Product.js             # Модель товара
+│   │   │   │   ├── Product.js             # Модель стандартного товара
 │   │   │   │   ├── Category.js            # Модель категории
+│   │   │   │   ├── Ingredient.js          # Модель ингредиента
+│   │   │   │   ├── IngredientCategory.js  # Модель категории ингредиентов
+│   │   │   │   ├── BaseRecipe.js          # Модель базового рецепта
+│   │   │   │   ├── GeneratedRecipe.js     # Модель AI-сгенерированного рецепта
 │   │   │   │   ├── Order.js               # Модель заказа
 │   │   │   │   ├── OrderItem.js           # Модель позиции заказа
 │   │   │   │   └── Rating.js              # Модель оценки
@@ -276,8 +285,186 @@ AI-Cha/
 
 ### 4.1. Основные таблицы
 
+---
+
+#### **БЛОК A: Ингредиенты и рецепты (для AI-генерации напитков)**
+
+**⚠️ Ключевая особенность проекта:** 
+AI-Cha не просто рекомендует товары из меню. AI **генерирует уникальные рецепты** напитков на основе диалога с клиентом, используя доступные ингредиенты. Каждый рецепт — персональный, с креативным названием, обоснованием и стилем подачи.
+
+Таблицы этого блока создаются на базовом этапе, но активно используются на AI-этапе для генерации рецептов. Необходимо заполнить:
+- Все ингредиенты кафе с подробными профилями вкуса и эффектов
+- Таблицу совместимости (важно для создания вкусных рецептов!)
+- Базовые рецепты (примеры для AI)
+
+#### Таблица: **ingredient_categories**
+Категории ингредиентов
+- `id` (PK, UUID)
+- `name_ru` (VARCHAR) - название на русском
+- `name_zh` (VARCHAR) - название на китайском
+- `type` (ENUM) - base/additive/topping/sweetener/spice/fruit/milk
+- `display_order` (INTEGER)
+
+**Примеры категорий ингредиентов:**
+- Основа (base): чаи, кофе, травяные настои
+- Добавки (additive): сиропы, экстракты
+- Топпинги (topping): ягоды, фрукты, украшения
+- Подсластители (sweetener): мёд, агава, финик
+- Специи (spice): корица, кардамон, имбирь
+- Фрукты (fruit): лимон, апельсин, грейпфрут
+- Молоко (milk): коровье, овсяное, миндальное, кокосовое
+
+#### Таблица: **ingredients**
+Все доступные ингредиенты кафе (для AI-генерации рецептов)
+- `id` (PK, UUID)
+- `category_id` (FK → ingredient_categories.id)
+- `name_ru` (VARCHAR) - название на русском
+- `name_zh` (VARCHAR) - название на китайском
+- `description_ru` (TEXT) - описание и характеристики
+- `description_zh` (TEXT)
+- `flavor_profile` (JSONB) - вкусовой профиль (шкала 0-10):
+  ```json
+  {"sweet": 3, "bitter": 7, "sour": 2, "spicy": 0, "umami": 5, "floral": 4}
+  ```
+- `effects` (JSONB) - эффекты для подбора под настроение:
+  ```json
+  {"energizing": 8, "calming": 2, "warming": 5, "cooling": 3, "focusing": 7, "romantic": 4}
+  ```
+- `mood_tags` (JSONB) - подходит для настроений:
+  ```json
+  ["tired", "focused", "happy", "romantic", "adventurous"]
+  ```
+- `caffeine_level` (ENUM) - none/low/medium/high
+- `temperature_suitable` (JSONB) - подходящие температуры: ["hot", "cold", "warm"]
+- `is_vegan` (BOOLEAN) - подходит для веганов
+- `is_sugar_free` (BOOLEAN) - без сахара
+- `allergens` (JSONB) - аллергены: ["nuts", "dairy", "gluten"]
+- `serving_size` (VARCHAR) - рекомендуемая порция (например, "2г", "30мл")
+- `preparation_notes` (TEXT) - заметки по приготовлению (температура, время)
+- `origin_story` (TEXT, NULLABLE) - история происхождения для туристов ("Душица — с холмов за рекой")
+- `cost_per_serving` (DECIMAL) - себестоимость порции
+- `is_available` (BOOLEAN) - есть ли в наличии
+- `is_seasonal` (BOOLEAN) - сезонный ингредиент
+- `image_url` (VARCHAR)
+- `created_at` (TIMESTAMP)
+- `updated_at` (TIMESTAMP)
+
+**Примеры ингредиентов с полными профилями:**
+- **Зелёный чай сенча**: основа, flavor: {bitter: 4, umami: 6}, effects: {energizing: 6, focusing: 7}, caffeine: low
+- **Матча церемониальный**: основа, flavor: {bitter: 5, umami: 8}, effects: {focusing: 9, energizing: 7}, caffeine: medium
+- **Ромашка**: основа, flavor: {floral: 8, sweet: 3}, effects: {calming: 9}, caffeine: none
+- **Имбирь свежий**: специя, flavor: {spicy: 7}, effects: {warming: 9, energizing: 5}
+- **Овсяное молоко**: молоко, is_vegan: true, effects: {calming: 4}
+- **Лаванда**: добавка, flavor: {floral: 9}, effects: {calming: 8, romantic: 7}, mood_tags: ["tired", "romantic"]
+
+#### Таблица: **ingredient_compatibility**
+Совместимость ингредиентов между собой (критически важна для генерации вкусных рецептов)
+- `id` (PK, UUID)
+- `ingredient_a_id` (FK → ingredients.id)
+- `ingredient_b_id` (FK → ingredients.id)
+- `compatibility_score` (INTEGER) - 1-10, где:
+  - 10 = идеальное сочетание (матча + ваниль)
+  - 7-9 = хорошо сочетаются (чёрный чай + имбирь)
+  - 5-6 = нейтрально, допустимо (зелёный чай + корица)
+  - 3-4 = слабо сочетаются, не рекомендуется
+  - 1-2 = конфликт вкусов (не использовать вместе!)
+- `notes` (TEXT) - заметки о сочетании ("Добавлять имбирь в конце, чтобы не горчило")
+
+**Критически важно:** AI ОБЯЗАН проверять совместимость всех пар ингредиентов в рецепте. Если хотя бы одна пара имеет score < 5, рецепт должен быть регенерирован.
+
+**Примеры совместимости:**
+- Ромашка + Лаванда = 10 (идеально для успокоения)
+- Зелёный чай + Лимон = 9 (классика)
+- Матча + Имбирь = 7 (интересное сочетание)
+- Кофе + Лаванда = 4 (не рекомендуется)
+- Молоко + Лимон = 2 (свернётся, конфликт!)
+
+#### Таблица: **base_recipes**
+Базовые рецепты из меню (примеры-шаблоны для AI, вдохновение для генерации)
+- `id` (PK, UUID)
+- `name_ru` (VARCHAR) - название (например, "Классический латте с овсяным молоком")
+- `name_zh` (VARCHAR)
+- `description_ru` (TEXT) - описание
+- `description_zh` (TEXT)
+- `category` (ENUM) - tea/coffee/herbal/cold/specialty
+- `base_price` (DECIMAL) - базовая цена
+- `preparation_time_minutes` (INTEGER)
+- `serving_style` (JSONB) - стиль подачи:
+  ```json
+  {
+    "container": "Керамическая кружка",
+    "accessories": "Деревянная ложка",
+    "decoration": "Корица сверху"
+  }
+  ```
+- `mood_tags` (JSONB) - для каких настроений подходит: ["tired", "focused", "romantic", "adventurous"]
+- `flavor_profile` (JSONB) - вкусовой профиль итогового напитка
+- `effects` (JSONB) - эффекты итогового напитка
+- `sample_card_message` (TEXT, NULLABLE) - пример послания для карточки
+- `created_at` (TIMESTAMP)
+
+**Примеры базовых рецептов для вдохновения AI:**
+- "Утренний ритуал": чёрный чай + имбирь, для бодрости, подача с лимонной долькой
+- "Тихий вечер": ромашка + лаванда + овсяное молоко, для расслабления
+- "Матча-фокус": матча + куркума, для концентрации, карточка: "Ваш фокус уже здесь"
+
+#### Таблица: **base_recipe_ingredients**
+Ингредиенты базовых рецептов
+- `id` (PK, UUID)
+- `recipe_id` (FK → base_recipes.id)
+- `ingredient_id` (FK → ingredients.id)
+- `amount` (VARCHAR) - количество (например, "200мл", "1 ч.л.")
+- `is_required` (BOOLEAN) - обязательный ингредиент
+- `order_in_recipe` (INTEGER) - порядок добавления
+
+#### Таблица: **generated_recipes**
+Рецепты, сгенерированные AI для конкретных клиентов
+- `id` (PK, UUID)
+- `session_id` (FK → dialog_sessions.id) - сессия диалога
+- `name_ru` (VARCHAR) - название напитка (креативное, придуманное AI, например "Тихий вечер")
+- `name_zh` (VARCHAR)
+- `description_ru` (TEXT) - поэтичное описание напитка (2-3 предложения)
+- `reasoning_ru` (TEXT) - персонализированное обоснование (почему этот рецепт подходит клиенту)
+- `personal_message` (TEXT, NULLABLE) - короткое послание клиенту для карточки (опционально)
+- `preparation_steps` (JSONB) - пошаговые инструкции [{step, instruction}]
+- `serving_style` (JSONB) - детальный стиль подачи:
+  ```json
+  {
+    "container": "В керамической кружке с толстыми стенками",
+    "accessories": "С деревянной ложечкой и тканевой салфеткой",
+    "decoration": "Веточка свежей мяты сверху",
+    "card_message": "Лето вернётся — а пока оно в вашей чашке"
+  }
+  ```
+- `temperature` (ENUM) - hot/cold/warm
+- `total_price` (DECIMAL) - итоговая цена
+- `preparation_time_minutes` (INTEGER)
+- `was_ordered` (BOOLEAN) - был ли заказан
+- `rating` (INTEGER) - оценка от клиента (1-10)
+- `created_at` (TIMESTAMP)
+
+**Примеры названий сгенерированных рецептов:**
+- "Тихий вечер" — для уставшего клиента
+- "Пряный рассвет" — для бодрости утром
+- "Clean Code" — для программиста
+- "Первое впечатление" — для туриста
+- "Ванильный закат" — для романтического настроения
+
+#### Таблица: **generated_recipe_ingredients**
+Ингредиенты сгенерированного рецепта
+- `id` (PK, UUID)
+- `generated_recipe_id` (FK → generated_recipes.id)
+- `ingredient_id` (FK → ingredients.id)
+- `amount` (VARCHAR) - количество
+- `preparation_note` (TEXT) - заметка по приготовлению этого ингредиента
+- `order_in_recipe` (INTEGER)
+
+---
+
+#### **БЛОК B: Стандартное меню и товары**
+
 #### Таблица: **categories**
-Категории товаров в меню кафе
+Категории товаров в стандартном меню кафе
 - `id` (PK, UUID) - уникальный идентификатор
 - `name_ru` (VARCHAR) - название на русском
 - `name_zh` (VARCHAR) - название на китайском
@@ -290,15 +477,14 @@ AI-Cha/
 - `created_at` (TIMESTAMP)
 - `updated_at` (TIMESTAMP)
 
-**Примеры категорий:**
-- Чайные напитки (茶饮)
+**Примеры категорий стандартного меню:**
+- Готовые чайные напитки (茶饮)
 - Кофейные напитки (咖啡饮品)
 - Холодные напитки (冷饮)
-- Десерты (甜点)
-- Чайные церемонии (茶道)
+- Десерты и закуски (甜点)
 
 #### Таблица: **products**
-Товары и напитки кафе
+Стандартные товары и напитки кафе (обычный заказ без AI)
 - `id` (PK, UUID) - уникальный идентификатор
 - `category_id` (FK → categories.id) - категория товара
 - `name_ru` (VARCHAR) - название на русском
@@ -307,12 +493,11 @@ AI-Cha/
 - `description_zh` (TEXT) - описание на китайском
 - `price` (DECIMAL) - цена в рублях
 - `image_url` (VARCHAR) - URL изображения товара
-- `ingredients_ru` (TEXT) - состав на русском
-- `ingredients_zh` (TEXT) - состав на китайском
+- `ingredients_summary_ru` (TEXT) - краткий состав на русском
+- `ingredients_summary_zh` (TEXT) - краткий состав на китайском
 - `temperature` (ENUM) - hot/cold/both - температура подачи
 - `is_available` (BOOLEAN) - доступен ли товар
-- `is_recommended` (BOOLEAN) - рекомендуется ли (для будущего AI)
-- `tags` (JSONB) - теги для фильтрации (сладкий, горький, крепкий и т.д.)
+- `tags` (JSONB) - теги для фильтрации
 - `display_order` (INTEGER) - порядок отображения
 - `created_at` (TIMESTAMP)
 - `updated_at` (TIMESTAMP)
@@ -333,15 +518,19 @@ AI-Cha/
 - `session_id` (VARCHAR) - идентификатор сессии терминала
 
 #### Таблица: **order_items**
-Позиции в заказе
+Позиции в заказе (поддержка как стандартных товаров, так и AI-рецептов)
 - `id` (PK, UUID)
 - `order_id` (FK → orders.id)
-- `product_id` (FK → products.id)
+- `item_type` (ENUM) - product/generated_recipe - тип позиции
+- `product_id` (FK → products.id, NULLABLE) - для стандартных товаров
+- `generated_recipe_id` (FK → generated_recipes.id, NULLABLE) - для AI-рецептов
 - `quantity` (INTEGER) - количество
 - `price_at_order` (DECIMAL) - цена на момент заказа
-- `product_name_ru` (VARCHAR) - название (копия для истории)
-- `product_name_zh` (VARCHAR)
+- `item_name_ru` (VARCHAR) - название (копия для истории)
+- `item_name_zh` (VARCHAR)
 - `created_at` (TIMESTAMP)
+
+**Примечание:** Хотя бы одно из полей product_id или generated_recipe_id должно быть заполнено в зависимости от item_type.
 
 #### Таблица: **ratings**
 Оценки сервиса
@@ -353,6 +542,17 @@ AI-Cha/
 
 ### 4.2. Индексы для оптимизации
 
+**Ингредиенты и рецепты:**
+- `ingredients(category_id, is_available)`
+- `ingredients(caffeine_level)`
+- `ingredient_compatibility(ingredient_a_id, ingredient_b_id)` - UNIQUE
+- `base_recipes(category, is_template)`
+- `base_recipe_ingredients(recipe_id)`
+- `generated_recipes(session_id)`
+- `generated_recipes(was_ordered, rating)`
+- `generated_recipe_ingredients(generated_recipe_id)`
+
+**Стандартное меню:**
 - `categories(slug)`
 - `categories(display_order, is_active)`
 - `products(category_id, is_available)`
@@ -476,19 +676,32 @@ AI-Cha/
 #### 2.3. Разработка API endpoints
 **Задача:** Создать RESTful API для работы с данными
 
-**Routes для товаров (backend/src/api/routes/products.js):**
-- GET /api/products - получить все товары с фильтрами
+**Routes для ингредиентов (backend/src/api/routes/ingredients.js):**
+- GET /api/ingredients - получить все доступные ингредиенты
+  - Query параметры: category, caffeine_level, is_vegan, is_available
+- GET /api/ingredients/:id - получить конкретный ингредиент
+- GET /api/ingredients/categories - получить категории ингредиентов
+- GET /api/ingredients/compatibility/:id - получить совместимость ингредиента
+
+**Routes для базовых рецептов (backend/src/api/routes/recipes.js):**
+- GET /api/recipes - получить все базовые рецепты (шаблоны)
+  - Query параметры: category, mood_tags
+- GET /api/recipes/:id - получить рецепт с ингредиентами
+- GET /api/recipes/:id/ingredients - получить ингредиенты рецепта
+
+**Routes для стандартных товаров (backend/src/api/routes/products.js):**
+- GET /api/products - получить все стандартные товары с фильтрами
   - Query параметры: category, temperature, search, tags
 - GET /api/products/:id - получить конкретный товар
-- GET /api/products/recommended - получить рекомендуемые (заглушка для AI)
 
-**Routes для категорий (backend/src/api/routes/categories.js):**
+**Routes для категорий стандартного меню (backend/src/api/routes/categories.js):**
 - GET /api/categories - получить все активные категории
 - GET /api/categories/:slug/products - получить товары категории
 
 **Routes для заказов (backend/src/api/routes/orders.js):**
 - POST /api/orders - создать новый заказ
-  - Body: { terminal_id, items: [{ product_id, quantity }] }
+  - Body: { terminal_id, items: [{ item_type, product_id?, generated_recipe_id?, quantity }] }
+  - Поддержка как стандартных товаров, так и AI-сгенерированных рецептов
 - GET /api/orders/:id - получить заказ по ID
 - PATCH /api/orders/:id/status - обновить статус заказа
   - Body: { status: 'preparing' | 'ready' | 'completed' }
