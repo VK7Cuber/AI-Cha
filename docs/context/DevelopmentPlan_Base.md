@@ -1382,8 +1382,8 @@ AI-Cha не просто рекомендует товары из меню. AI *
   - "Готово" (preparing → ready)
   - "Выдано" (ready → completed)
 - Цветовая кодировка:
-  - Новый (pending) - желтый border
-  - Готовится (preparing) - синий border
+  - Новый (pending) - красный border
+  - Готовится (preparing) - жёлтый border
   - Готов (ready) - зеленый border
 
 **Логика:**
@@ -1712,7 +1712,7 @@ AI-Cha не просто рекомендует товары из меню. AI *
    - CPU: 4+ ядра
    - RAM: 16GB
    - Disk: 100GB SSD
-   - OS: Ubuntu 22.04
+   - OS: Ubuntu 22.04 
 
 2. Установка Docker и Docker Compose
 

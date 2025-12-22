@@ -9,13 +9,28 @@ module.exports = {
     await queryInterface.bulkDelete('products', null, {});
     await queryInterface.bulkDelete('categories', null, {});
 
-    // Категории
+    // Категории обновленного меню
     const categories = [
-      { key: 'tea', name_ru: 'Чайные напитки', name_zh: '茶饮', slug: 'tea', description_ru: 'Классические и авторские чаи', description_zh: '经典与创意茶饮', display_order: 1, icon_url: '/images/categories/tea.png' },
-      { key: 'coffee', name_ru: 'Кофейные напитки', name_zh: '咖啡饮品', slug: 'coffee', description_ru: 'Эспрессо, латте и альтернативы', description_zh: '意式、拿铁与手冲', display_order: 2, icon_url: '/images/categories/coffee.png' },
-      { key: 'cold', name_ru: 'Холодные напитки', name_zh: '冷饮', slug: 'cold', description_ru: 'Освежающие лимонады и холодные чаи', description_zh: '清爽柠檬水与冷泡茶', display_order: 3, icon_url: '/images/categories/cold.png' },
-      { key: 'dessert', name_ru: 'Десерты', name_zh: '甜点', slug: 'desserts', description_ru: 'Сладкие дополнения к чаю', description_zh: '搭配茶饮的甜品', display_order: 4, icon_url: '/images/categories/dessert.png' },
-      { key: 'ceremony', name_ru: 'Чайные церемонии', name_zh: '茶道', slug: 'ceremonies', description_ru: 'Традиционные заваривания', description_zh: '传统茶艺冲泡', display_order: 5, icon_url: '/images/categories/ceremony.png' }
+      {
+        key: 'tea_collection',
+        name_ru: 'Чайная коллекция',
+        name_zh: '创意茶饮',
+        slug: 'tea-collection',
+        description_ru: 'Фирменные бабл-ти и чайные напитки с авторскими сиропами',
+        description_zh: '创意茶饮与波波茶',
+        display_order: 1,
+        icon_url: '/images/categories/tea.png'
+      },
+      {
+        key: 'coffee_collection',
+        name_ru: 'Кофейная коллекция',
+        name_zh: '咖啡系列',
+        slug: 'coffee-collection',
+        description_ru: 'Кофейные новинки с пряностями, карамелью и фруктами',
+        description_zh: '创意风味咖啡',
+        display_order: 2,
+        icon_url: '/images/categories/coffee.png'
+      }
     ].map((cat) => ({
       id: uuidv4(),
       ...cat,
@@ -26,42 +41,178 @@ module.exports = {
 
     const catId = (key) => categories.find((c) => c.key === key).id;
 
-    // Товары (минимум 30 позиций)
+    // Товары обновленного меню (14 позиций)
     const products = [
-      // Tea
-      { category: 'tea', name_ru: 'Лунцзин', name_zh: '龙井茶', price: 250, temperature: 'hot', tags: ['зеленый', 'легкий', 'ореховый'], description_ru: 'Классический зеленый чай с ореховыми нотами', description_zh: '经典龙井，带坚果香气' },
-      { category: 'tea', name_ru: 'Пуэр выдержанный', name_zh: '普洱茶', price: 350, temperature: 'hot', tags: ['крепкий', 'землистый'], description_ru: 'Глубокий вкус выдержанного пуэра', description_zh: '陈年普洱，醇厚回甘' },
-      { category: 'tea', name_ru: 'Молочный улун', name_zh: '乌龙茶', price: 280, temperature: 'hot', tags: ['улун', 'сливочный', 'ароматный'], description_ru: 'Мягкий сливочный аромат улуна', description_zh: '奶香乌龙，香醇顺滑' },
-      { category: 'tea', name_ru: 'Жасминовый чай', name_zh: '茉莉花茶', price: 230, temperature: 'hot', tags: ['цветочный', 'легкий'], description_ru: 'Свежий жасминовый аромат', description_zh: '清新茉莉花香' },
-      { category: 'tea', name_ru: 'Черный чай Дяньхун', name_zh: '滇红', price: 260, temperature: 'hot', tags: ['черный', 'медовый'], description_ru: 'Медовые ноты и глубокий цвет', description_zh: '蜜香滇红，醇厚甘甜' },
-      { category: 'tea', name_ru: 'Матча латте', name_zh: '抹茶拿铁', price: 320, temperature: 'both', tags: ['матча', 'сливочный'], description_ru: 'Матча с молоком, можно холодную', description_zh: '抹茶与牛奶，可热可冷' },
-      // Coffee
-      { category: 'coffee', name_ru: 'Эспрессо', name_zh: '意式浓缩', price: 180, temperature: 'hot', tags: ['крепкий', 'быстрый'], description_ru: 'Классический эспрессо', description_zh: '经典意式浓缩' },
-      { category: 'coffee', name_ru: 'Американо', name_zh: '美式咖啡', price: 200, temperature: 'hot', tags: ['легкий', 'длительный'], description_ru: 'Эспрессо с горячей водой', description_zh: '浓缩加热水，口感顺' },
-      { category: 'coffee', name_ru: 'Капучино', name_zh: '卡布奇诺', price: 260, temperature: 'hot', tags: ['молочный', 'пенка'], description_ru: 'Кофе с пышной молочной пеной', description_zh: '绵密奶泡的咖啡' },
-      { category: 'coffee', name_ru: 'Латте', name_zh: '拿铁', price: 270, temperature: 'hot', tags: ['мягкий', 'молочный'], description_ru: 'Мягкий кофе с молоком', description_zh: '口感柔和的牛奶咖啡' },
-      { category: 'coffee', name_ru: 'Флэт уайт', name_zh: '馥芮白', price: 280, temperature: 'hot', tags: ['плотный', 'микропенка'], description_ru: 'Плотный вкус, тонкая пенка', description_zh: '风味浓郁，薄奶泡' },
-      { category: 'coffee', name_ru: 'Карамельный раф', name_zh: '焦糖拉花咖啡', price: 310, temperature: 'hot', tags: ['сладкий', 'сливочный'], description_ru: 'Сливочный раф с карамелью', description_zh: '焦糖与奶油的甜香' },
-      // Cold drinks
-      { category: 'cold', name_ru: 'Холодный жасминовый чай', name_zh: '冷泡茉莉', price: 240, temperature: 'cold', tags: ['легкий', 'цветочный', 'освежающий'], description_ru: 'Холодный настой жасминового чая', description_zh: '清爽冷泡茉莉' },
-      { category: 'cold', name_ru: 'Лимонад с юдзу', name_zh: '柚子柠檬水', price: 260, temperature: 'cold', tags: ['цитрусовый', 'кисло-сладкий'], description_ru: 'Легкий цитрусовый лимонад', description_zh: '清新柚子风味' },
-      { category: 'cold', name_ru: 'Холодный улун с персиком', name_zh: '桃子乌龙冷泡', price: 270, temperature: 'cold', tags: ['фруктовый', 'улун'], description_ru: 'Улун с ароматом персика', description_zh: '乌龙融合桃子果香' },
-      { category: 'cold', name_ru: 'Матча-тоник', name_zh: '抹茶汤力', price: 290, temperature: 'cold', tags: ['матча', 'тоник', 'освежающий'], description_ru: 'Матча с тоником и льдом', description_zh: '抹茶搭配汤力水' },
-      { category: 'cold', name_ru: 'Айс-латте', name_zh: '冰拿铁', price: 280, temperature: 'cold', tags: ['кофе', 'молочный', 'холодный'], description_ru: 'Латте на льду', description_zh: '冰爽拿铁' },
-      { category: 'cold', name_ru: 'Фруктовый чай с ягодами', name_zh: '莓果水果茶', price: 300, temperature: 'cold', tags: ['ягодный', 'сладкий'], description_ru: 'Фруктовый чай с ягодным миксом', description_zh: '多莓果香水果茶' },
-      // Desserts
-      { category: 'dessert', name_ru: 'Чизкейк классический', name_zh: '经典芝士蛋糕', price: 320, temperature: 'both', tags: ['сливочный', 'сырный'], description_ru: 'Нежный сырный чизкейк', description_zh: '绵密奶香芝士' },
-      { category: 'dessert', name_ru: 'Маффин матча', name_zh: '抹茶玛芬', price: 180, temperature: 'both', tags: ['матча', 'сладкий'], description_ru: 'Маффин с матча и белым шоколадом', description_zh: '抹茶与白巧的甜香' },
-      { category: 'dessert', name_ru: 'Тирамису', name_zh: '提拉米苏', price: 300, temperature: 'both', tags: ['кофе', 'кремовый'], description_ru: 'Классический тирамису', description_zh: '经典提拉米苏' },
-      { category: 'dessert', name_ru: 'Печенье кунжутное', name_zh: '芝麻曲奇', price: 140, temperature: 'both', tags: ['кунжут', 'хрустящий'], description_ru: 'Хрустящее печенье с кунжутом', description_zh: '酥脆芝麻饼干' },
-      { category: 'dessert', name_ru: 'Моти с манго', name_zh: '芒果麻薯', price: 210, temperature: 'both', tags: ['манго', 'жевательное'], description_ru: 'Мягкие моти с манговой начинкой', description_zh: '芒果内馅软糯麻薯' },
-      { category: 'dessert', name_ru: 'Шоколадный брауни', name_zh: '布朗尼', price: 240, temperature: 'both', tags: ['шоколад', 'насыщенный'], description_ru: 'Плотный шоколадный брауни', description_zh: '浓郁巧克力布朗尼' },
-      // Ceremony
-      { category: 'ceremony', name_ru: 'Гунфу завари́вание улуна', name_zh: '功夫乌龙冲泡', price: 650, temperature: 'hot', tags: ['церемония', 'улун'], description_ru: 'Традиционное заваривание улуна гайванью', description_zh: '盖碗功夫泡乌龙' },
-      { category: 'ceremony', name_ru: 'Гунфу завари́вание пуэра', name_zh: '功夫普洱冲泡', price: 680, temperature: 'hot', tags: ['церемония', 'пуэр'], description_ru: 'Чайная церемония с пуэром', description_zh: '普洱功夫茶道' },
-      { category: 'ceremony', name_ru: 'Матча церемониальная', name_zh: '抹茶点茶', price: 620, temperature: 'hot', tags: ['матча', 'церемония'], description_ru: 'Взбивание матча бамбуковой кистью', description_zh: '传统茶筅点茶' },
-      { category: 'ceremony', name_ru: 'Жасминовый гунфу сет', name_zh: '茉莉功夫茶', price: 600, temperature: 'hot', tags: ['жасмин', 'церемония'], description_ru: 'Церемония с жасминовым чаем', description_zh: '茉莉花茶功夫泡' },
-      { category: 'ceremony', name_ru: 'Улун с пиалами', name_zh: '乌龙茶席', price: 640, temperature: 'hot', tags: ['улун', 'традиционный'], description_ru: 'Пошаговое заваривание улуна с сервировкой', description_zh: '乌龙分泡与呈茶' }
+      // Tea collection
+      {
+        category: 'tea_collection',
+        name_ru: 'Облачный Улун',
+        name_zh: '乌龙云顶',
+        price: 430,
+        temperature: 'cold',
+        tags: ['улун', 'кокос', 'бабл-ти', 'сливочный', 'холодный'],
+        description_ru: 'Слоистый бабл-ти на молочном улунe с кокосовым молоком и солёным кремом.',
+        description_zh: '椰香奶乌龙，多层波波配咸奶盖。',
+        ingredients_ru: 'Молочный улун, кокосовое молоко, ванильный сироп, миндальный сироп, медовая тапиока, солёные взбитые сливки, какао.',
+        ingredients_zh: '奶香乌龙、椰奶、香草糖浆、杏仁糖浆、蜂蜜波波、咸奶盖、可可粉。'
+      },
+      {
+        category: 'tea_collection',
+        name_ru: 'Дымящаяся Скала',
+        name_zh: '烟熏岩茶',
+        price: 420,
+        temperature: 'hot',
+        tags: ['копченый', 'латте', 'миндальное молоко', 'ягоды', 'горячий'],
+        description_ru: 'Горячий лапсанг-латте с миндальным молоком, дымом и ягодами.',
+        description_zh: '正山小种拿铁，烟熏风味配杏仁奶与覆盆子。',
+        ingredients_ru: 'Лапсанг Сушонг, миндальное молоко, кленовый сироп, лавандовый сироп, взбитые сливки, корица, сушёная малина.',
+        ingredients_zh: '正山小种、杏仁奶、枫糖浆、薰衣草糖浆、淡奶油、肉桂、冻干覆盆子。'
+      },
+      {
+        category: 'tea_collection',
+        name_ru: 'Матча-Аффогато',
+        name_zh: '抹茶阿芙佳朵',
+        price: 450,
+        temperature: 'both',
+        tags: ['матча', 'десерт', 'кокос', 'карамель', 'сливочный'],
+        description_ru: 'Матча-крем с шариком ванильного мороженого и карамельной тапиокой.',
+        description_zh: '抹茶奶油淋香草冰淇淋，配焦糖波波。',
+        ingredients_ru: 'Матча-порошок, кокосовое молоко, ванильное мороженое, карамельный сироп, карамельная тапиока.',
+        ingredients_zh: '抹茶粉、椰奶、香草冰淇淋、焦糖糖浆、焦糖波波。'
+      },
+      {
+        category: 'tea_collection',
+        name_ru: 'Красный Бархат',
+        name_zh: '红色天鹅绒',
+        price: 410,
+        temperature: 'cold',
+        tags: ['ягодный', 'черный чай', 'безлактозный', 'сладкий', 'холодный'],
+        description_ru: 'Ягодный чёрный чай-фраппе с малиной, безлактозным молоком и сливками.',
+        description_zh: '覆盆子黑茶冰沙，乳脂绵密配草莓波波。',
+        ingredients_ru: 'Чёрный чай, малиновый сироп, замороженная малина, безлактозное молоко, взбитые сливки, сушёная малина, клубничная тапиока.',
+        ingredients_zh: '红茶、覆盆子糖浆、冷冻覆盆子、无乳糖牛奶、奶油、冻干覆盆子、草莓波波。'
+      },
+      {
+        category: 'tea_collection',
+        name_ru: 'Жасминовый Туман',
+        name_zh: '茉莉雾霭',
+        price: 400,
+        temperature: 'cold',
+        tags: ['жасмин', 'миндальное молоко', 'флоральный', 'освежающий', 'бабл-ти'],
+        description_ru: 'Холодный жасминовый чай с миндальным молоком и нотами сливы, лаванды и мяты.',
+        description_zh: '茉莉冷萃加杏仁奶，梅花与薰衣草薄荷香。',
+        ingredients_ru: 'Зелёный жасминовый чай, сироп цветков сливы, лавандовый сироп, мятный сироп, миндальное молоко, чёрная тапиока, сливки, лёд.',
+        ingredients_zh: '茉莉绿茶、梅花糖浆、薰衣草糖浆、薄荷糖浆、杏仁奶、黑波波、奶油、冰块。'
+      },
+      {
+        category: 'tea_collection',
+        name_ru: 'Белый Сад',
+        name_zh: '白茶花园',
+        price: 390,
+        temperature: 'hot',
+        tags: ['белый чай', 'медовый', 'мягкий', 'сливочный'],
+        description_ru: 'Бай Му Дань с миндальным молоком, мёдом и кленовым сиропом, подается с медовой тапиокой.',
+        description_zh: '白牡丹茶搭配杏仁奶、蜂蜜与枫糖，配蜂蜜波波。',
+        ingredients_ru: 'Белый чай Бай Му Дань, миндальное молоко, кленовый сироп, мёд, медовая тапиока.',
+        ingredients_zh: '白牡丹、杏仁奶、枫糖浆、蜂蜜、蜂蜜波波。'
+      },
+      {
+        category: 'tea_collection',
+        name_ru: 'Инь-Янь Бабл',
+        name_zh: '阴阳波波茶',
+        price: 440,
+        temperature: 'cold',
+        tags: ['матча', 'ананас', 'слои', 'бабл-ти', 'освежающий'],
+        description_ru: 'Двухслойный матча-латте и ананасовый чёрный чай с зелёной тапиокой.',
+        description_zh: '双层抹茶拿铁与菠萝红茶，配抹茶波波。',
+        ingredients_ru: 'Матча-латте на кокосовом молоке, чёрный чай, ананасовый сок, апельсиновый сироп, зелёная тапиока, лёд.',
+        ingredients_zh: '抹茶拿铁、红茶、菠萝汁、橙味糖浆、抹茶波波、冰块。'
+      },
+      // Coffee collection
+      {
+        category: 'coffee_collection',
+        name_ru: 'Эспрессо имбирно-пряничный',
+        name_zh: '姜饼浓缩咖啡',
+        price: 350,
+        temperature: 'hot',
+        tags: ['эспрессо', 'пряный', 'имбирь', 'сливки', 'горячий'],
+        description_ru: 'Двойной эспрессо с имбирным сиропом и пряной шапкой сливок.',
+        description_zh: '双份浓缩加姜饼糖浆与香料奶盖。',
+        ingredients_ru: 'Двойной эспрессо, имбирный сироп, сливки 20%, взбитые сливки, корица, какао, цукаты имбиря.',
+        ingredients_zh: '双份浓缩、姜饼糖浆、淡奶油、奶油、肉桂、可可粉、姜糖。'
+      },
+      {
+        category: 'coffee_collection',
+        name_ru: 'Латте карамельный',
+        name_zh: '焦糖拿铁',
+        price: 360,
+        temperature: 'hot',
+        tags: ['латте', 'карамель', 'шоколад', 'сливочный'],
+        description_ru: 'Горячий карамельный латте с шоколадным акцентом и карамельной тапиокой.',
+        description_zh: '焦糖拿铁配巧克力风味与焦糖波波。',
+        ingredients_ru: 'Эспрессо, молоко, карамельный сироп, шоколадный сироп, мёд, взбитые сливки, корица, карамельная тапиока.',
+        ingredients_zh: '浓缩、牛奶、焦糖糖浆、巧克力糖浆、蜂蜜、奶油、肉桂、焦糖波波。'
+      },
+      {
+        category: 'coffee_collection',
+        name_ru: 'Фруктовое наслаждение',
+        name_zh: '果味的喜悦',
+        price: 380,
+        temperature: 'cold',
+        tags: ['кофе-тоник', 'манго', 'имбирь', 'освежающий'],
+        description_ru: 'Холодный кофе-тоник с манго, имбирём и медовой тапиокой.',
+        description_zh: '冰咖啡汤力配芒果姜味，蜂蜜波波。',
+        ingredients_ru: 'Холодный латте, тоник, сироп манго, имбирный сироп, медовая тапиока, лёд, корица.',
+        ingredients_zh: '冰拿铁、汤力水、芒果糖浆、姜糖浆、蜂蜜波波、冰块、肉桂。'
+      },
+      {
+        category: 'coffee_collection',
+        name_ru: 'Коричный Рулет',
+        name_zh: '肉桂卷咖啡',
+        price: 370,
+        temperature: 'hot',
+        tags: ['мокка', 'кокос', 'корица', 'десертный'],
+        description_ru: 'Горячая мокка с кокосовым молоком, корицей и песочной крошкой.',
+        description_zh: '椰奶摩卡，肉桂与饼干碎做顶。',
+        ingredients_ru: 'Мокка, кокосовое молоко, кокосовый сироп, коричный сироп, взбитые сливки, песочная крошка, корица.',
+        ingredients_zh: '摩卡、椰奶、椰子糖浆、肉桂糖浆、奶油、饼干碎、肉桂粉。'
+      },
+      {
+        category: 'coffee_collection',
+        name_ru: 'Ореховый Эльф',
+        name_zh: '坚果精灵',
+        price: 390,
+        temperature: 'cold',
+        tags: ['фраппе', 'фундук', 'карамель', 'холодный', 'сливочный'],
+        description_ru: 'Фраппе на капучино с фундуком, карамелью и карамельной тапиокой.',
+        description_zh: '榛果焦糖冰咖啡冰沙，配焦糖波波。',
+        ingredients_ru: 'Капучино, фундуковый сироп, молоко, карамельный сироп, лёд, взбитые сливки, карамельная тапиока.',
+        ingredients_zh: '卡布奇诺、榛果糖浆、牛奶、焦糖糖浆、冰块、奶油、焦糖波波。'
+      },
+      {
+        category: 'coffee_collection',
+        name_ru: 'Фильтр-Сангрия',
+        name_zh: '过滤桑格利亚',
+        price: 365,
+        temperature: 'cold',
+        tags: ['ананас', 'ягодный', 'холодный', 'легкий'],
+        description_ru: 'Освежающий микс охлаждённого капучино, ананасового сока и малины.',
+        description_zh: '菠萝汁与覆盆子冰咖啡，似桑格利亚风味。',
+        ingredients_ru: 'Охлаждённый капучино, ананасовый сок, сушёная малина, медовая тапиока, лёд, корица.',
+        ingredients_zh: '冰卡布奇诺、菠萝汁、冻干覆盆子、蜂蜜波波、冰块、肉桂。'
+      },
+      {
+        category: 'coffee_collection',
+        name_ru: 'Медовая Луна',
+        name_zh: '蜜月咖啡',
+        price: 380,
+        temperature: 'hot',
+        tags: ['латте', 'мёд', 'цветы', 'мягкий', 'теплый'],
+        description_ru: 'Тёплый латте с мёдом, сливками и нотами цветков сливы.',
+        description_zh: '蜂蜜拿铁配梅花糖浆与奶油，蜂蜜波波。',
+        ingredients_ru: 'Латте, мёд, безлактозное молоко, сироп цветков сливы, взбитые сливки, медовая тапиока.',
+        ingredients_zh: '拿铁、蜂蜜、无乳糖牛奶、梅花糖浆、奶油、蜂蜜波波。'
+      }
     ].map((p, idx) => ({
       id: uuidv4(),
       category_id: catId(p.category),
@@ -71,11 +222,11 @@ module.exports = {
       description_zh: p.description_zh,
       price: p.price,
       image_url: p.image_url || `/images/products/${p.category}-${idx + 1}.webp`,
-      ingredients_ru: null,
-      ingredients_zh: null,
+      ingredients_ru: p.ingredients_ru || null,
+      ingredients_zh: p.ingredients_zh || null,
       temperature: p.temperature,
       is_available: true,
-      is_recommended: p.tags?.includes('рекомендовано') || false,
+      is_recommended: p.is_recommended ?? (p.tags?.includes('рекомендовано') || false),
       tags: JSON.stringify(p.tags || []),
       display_order: idx + 1,
       created_at: now,

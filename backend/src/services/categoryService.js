@@ -2,9 +2,18 @@ import { models } from '../database/models/init.js';
 
 const { Category, Product } = models;
 
+let categoryCache = { data: null, expiresAt: 0 };
+const CACHE_TTL_MS = 60_000; // 1 минута на базовом этапе, можно заменить на Redis
+
 export const categoryService = {
   async getCategories() {
-    return Category.getActive();
+    const now = Date.now();
+    if (categoryCache.data && categoryCache.expiresAt > now) {
+      return categoryCache.data;
+    }
+    const categories = await Category.getActive();
+    categoryCache = { data: categories, expiresAt: now + CACHE_TTL_MS };
+    return categories;
   },
 
   async getCategoriesWithProducts() {

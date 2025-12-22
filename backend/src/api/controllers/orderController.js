@@ -20,6 +20,11 @@ export const orderController = {
     reply.send(order);
   },
 
+  async getAll(request, reply) {
+    const orders = await orderService.listOrders(request.query || {});
+    reply.send(orders);
+  },
+
   async updateStatus(request, reply) {
     const { status } = request.body || {};
     const order = await orderService.updateStatus(request.params.id, status);

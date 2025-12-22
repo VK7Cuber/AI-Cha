@@ -7,6 +7,7 @@ import { serverConfig } from './config/server.js';
 import { registerRoutes } from './api/routes/index.js';
 import { loggerHook } from './api/middleware/logger.js';
 import { errorHandler } from './api/middleware/errorHandler.js';
+import { initWs } from './utils/ws.js';
 
 const fastify = Fastify({
   logger: {
@@ -47,6 +48,7 @@ const start = async () => {
   try {
     await fastify.listen({ port: serverConfig.port, host: serverConfig.host });
     fastify.log.info(`Server running on port ${serverConfig.port}`);
+    initWs(fastify.server);
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);

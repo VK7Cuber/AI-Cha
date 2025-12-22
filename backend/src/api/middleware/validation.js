@@ -8,9 +8,21 @@ export const validateCreateOrder = async (request, reply) => {
     return badRequest(reply, 'Не переданы товары');
   }
   for (const item of items) {
-    if (!item?.product_id || typeof item.product_id !== 'string') {
-      return badRequest(reply, 'product_id обязателен');
+    const type = item.item_type || 'product';
+    if (!['product', 'generated_recipe'].includes(type)) {
+      return badRequest(reply, 'item_type должен быть product или generated_recipe');
     }
+
+    if (type === 'product') {
+      if (!item?.product_id || typeof item.product_id !== 'string') {
+        return badRequest(reply, 'product_id обязателен для item_type=product');
+      }
+    } else {
+      if (!item?.generated_recipe_id || typeof item.generated_recipe_id !== 'string') {
+        return badRequest(reply, 'generated_recipe_id обязателен для item_type=generated_recipe');
+      }
+    }
+
     const qty = Number(item.quantity ?? 1);
     if (!Number.isFinite(qty) || qty <= 0) {
       return badRequest(reply, 'quantity должен быть > 0');

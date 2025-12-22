@@ -6,6 +6,7 @@ import CartScreen from './components/screens/CartScreen/CartScreen';
 import PaymentScreen from './components/screens/PaymentScreen/PaymentScreen';
 import RatingScreen from './components/screens/RatingScreen/RatingScreen';
 import RecommendationsScreen from './components/screens/RecommendationsScreen/RecommendationsScreen';
+import StaffDashboard from './components/screens/StaffDashboard/StaffDashboard';
 import { PageTransition } from './components/animations/PageTransition/PageTransition';
 import { useNavigationTracking } from './components/hooks/useNavigationTracking';
 import { PropsWithChildren } from 'react';
@@ -22,7 +23,9 @@ const router = createBrowserRouter([
   { path: '/cart', element: <PageTransition><WithNavigationTracking><CartScreen /></WithNavigationTracking></PageTransition> },
   { path: '/payment', element: <PageTransition><WithNavigationTracking><PaymentScreen /></WithNavigationTracking></PageTransition> },
   { path: '/rating', element: <PageTransition><WithNavigationTracking><RatingScreen /></WithNavigationTracking></PageTransition> },
-  { path: '/recommendations', element: <PageTransition><WithNavigationTracking><RecommendationsScreen /></WithNavigationTracking></PageTransition> }
+  { path: '/recommendations', element: <PageTransition><WithNavigationTracking><RecommendationsScreen /></WithNavigationTracking></PageTransition> },
+  // Staff panel (отдельный вход, не включать в публичный UI)
+  { path: '/staff-panel', element: <PageTransition><StaffDashboard /></PageTransition> }
 ]);
 
 export function AppRouter() {
