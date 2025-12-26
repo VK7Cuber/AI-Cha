@@ -1,0 +1,138 @@
+.page {
+  min-height: 100vh;
+  padding: 32px;
+  background: var(--color-background, #0f0f10);
+  color: var(--color-textPrimary, #f5f5f5);
+}
+
+.header {
+  text-align: center;
+  margin-bottom: 48px;
+}
+
+.logo {
+  width: 140px;
+  height: 140px;
+  object-fit: contain;
+}
+
+.columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 48px;
+  max-width: 1800px;
+  margin: 0 auto;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  min-height: 60vh;
+}
+
+.columnTitlePreparing {
+  font-size: 56px;
+  font-weight: 700;
+  color: var(--color-textSecondary, #9e9e9e);
+  margin: 0 0 32px;
+  text-align: center;
+}
+
+.columnTitleReady {
+  font-size: 56px;
+  font-weight: 800;
+  color: var(--color-primary, #d32f2f);
+  margin: 0 0 32px;
+  text-align: center;
+}
+
+.ordersList {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.orderRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 28px 32px;
+  background: var(--color-surface, #1a1b1f);
+  border-radius: 16px;
+  border: 2px solid #2a2b30;
+  animation: fadeIn 0.3s ease;
+}
+
+.orderId {
+  font-size: 64px;
+  font-weight: 800;
+  color: var(--color-textPrimary, #f5f5f5);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.orderIdReady {
+  font-size: 64px;
+  font-weight: 900;
+  color: #4caf50;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  text-shadow: 0 2px 8px rgba(76, 175, 80, 0.3);
+}
+
+.badge {
+  padding: 12px 24px;
+  border-radius: 999px;
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #0d0d10;
+}
+
+.pending {
+  background: #ffe5e5;
+  color: #c62828;
+  border: 1px solid #ffcdd2;
+}
+
+.paid {
+  background: #e3f2fd;
+  color: #0d47a1;
+  border: 1px solid #bbdefb;
+}
+
+.preparing {
+  background: #fff5e0;
+  color: #e65100;
+  border: 1px solid #ffe0b2;
+}
+
+.ready {
+  background: #e8f5e9;
+  color: #2e7d32;
+  border: 1px solid #c8e6c9;
+}
+
+.empty {
+  text-align: center;
+  padding: 60px 40px;
+  color: var(--color-textSecondary, #9e9e9e);
+  font-size: 36px;
+  font-weight: 600;
+  background: var(--color-surface, #1a1b1f);
+  border-radius: 16px;
+  border: 2px dashed #2c2d32;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

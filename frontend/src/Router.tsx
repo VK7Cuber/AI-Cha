@@ -7,6 +7,7 @@ import PaymentScreen from './components/screens/PaymentScreen/PaymentScreen';
 import RatingScreen from './components/screens/RatingScreen/RatingScreen';
 import RecommendationsScreen from './components/screens/RecommendationsScreen/RecommendationsScreen';
 import StaffDashboard from './components/screens/StaffDashboard/StaffDashboard';
+import DisplayScreen from './components/screens/DisplayScreen/DisplayScreen';
 import { PageTransition } from './components/animations/PageTransition/PageTransition';
 import { useNavigationTracking } from './components/hooks/useNavigationTracking';
 import { PropsWithChildren } from 'react';
@@ -25,7 +26,9 @@ const router = createBrowserRouter([
   { path: '/rating', element: <PageTransition><WithNavigationTracking><RatingScreen /></WithNavigationTracking></PageTransition> },
   { path: '/recommendations', element: <PageTransition><WithNavigationTracking><RecommendationsScreen /></WithNavigationTracking></PageTransition> },
   // Staff panel (отдельный вход, не включать в публичный UI)
-  { path: '/staff-panel', element: <PageTransition><StaffDashboard /></PageTransition> }
+  { path: '/staff-panel', element: <PageTransition><StaffDashboard /></PageTransition> },
+  // Display screen (экран отображения готовых заказов для клиентов)
+  { path: '/display-screen', element: <PageTransition><DisplayScreen /></PageTransition> }
 ]);
 
 export function AppRouter() {
