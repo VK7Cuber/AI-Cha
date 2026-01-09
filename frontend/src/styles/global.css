@@ -4,59 +4,94 @@
 
 :root {
   font-family: 'Inter', 'Noto Sans SC', system-ui, -apple-system, sans-serif;
-  --color-primary: #D32F2F;
-  --color-primary-hover: #B71C1C;
-  --color-primary-active: #9c2424;
-  --color-gold: #FFD700;
-  --color-gold-hover: #e6c200;
-  --color-gold-active: #ccad00;
-  --color-green: #388E3C;
-  --color-green-hover: #2f7a32;
-  --color-green-active: #27662a;
-  --color-gray: #757575;
-  --color-gray-light: #E0E0E0;
-  --color-gray-lighter: #F2F2F2;
-  --color-background: #FAFAFA;
-  --color-surface: #FFFFFF;
-  --color-surface-elevated: #FFFFFF;
-  --color-text-primary: #212121;
-  --color-text-secondary: #757575;
-  /* Яркость подсветок для светлой темы */
-  --glow-1: rgba(255, 255, 255, 0.2);
-  --glow-2: rgba(255, 255, 255, 0.14);
+  /* Основная палитра в стиле китайской традиционной росписи */
+  /* Темно-синий - основной цвет (глубокий синий как на традиционных картинах) */
+  --color-primary: #1565c0;
+  --color-primary-hover: #0d47a1;
+  --color-primary-active: #1976d2;
+  /* Голубой - акцентный цвет (светло-голубой для облаков и акцентов) */
+  --color-accent: #64b5f6;
+  --color-accent-hover: #42a5f5;
+  --color-accent-active: #90caf9;
+  /* Мягкий голубой - для фонов и облачных узоров */
+  --color-cloud: #b3d9f2;
+  --color-cloud-light: #e3f2fd;
+  /* Золотой - для премиум элементов (сохраняем для важных акцентов) */
+  --color-gold: #ffb74d;
+  --color-gold-hover: #ffa726;
+  --color-gold-active: #ff9800;
+  /* Зеленый - для успешных действий (чайная тематика) */
+  --color-green: #4caf50;
+  --color-green-hover: #43a047;
+  --color-green-active: #388e3c;
+  /* Серые оттенки - нейтральные цвета */
+  --color-gray: #78909c;
+  --color-gray-light: #cfd8dc;
+  --color-gray-lighter: #eceff1;
+  /* Фоны - белые и светло-голубые */
+  --color-background: #ffffff;
+  --color-surface: #f5f9fc;
+  --color-surface-elevated: #e8f4f8;
+  /* Текст - темно-синий на светлом фоне */
+  --color-text-primary: #0d47a1;
+  --color-text-secondary: #546e7a;
+  /* Подсветки для светлой темы */
+  --glow-1: rgba(100, 181, 246, 0.15);
+  --glow-2: rgba(21, 101, 192, 0.1);
   color: var(--color-text-primary);
   background-color: var(--color-background);
   transition: background-color 0.35s ease, color 0.35s ease, border-color 0.35s ease;
 }
 
 .dark {
-  --color-primary: #EF5350;
-  --color-primary-hover: #F44336;
-  --color-primary-active: #E53935;
-  --color-gold: #FFD54F;
-  --color-gold-hover: #FBC02D;
-  --color-gold-active: #F9A825;
-  --color-green: #66BB6A;
-  --color-green-hover: #57A45C;
-  --color-green-active: #4D8F50;
-  --color-gray: #9E9E9E;
-  --color-gray-light: #424242;
-  --color-gray-lighter: #2D2D2D;
+  /* Темная тема - темный фон с голубыми акцентами как контрастные цвета */
+  /* Основной цвет - голубой как контрастный акцент (вместо красного) */
+  --color-primary: #64b5f6;
+  --color-primary-hover: #90caf9;
+  --color-primary-active: #42a5f5;
+  /* Голубой акцент - яркий контраст на темном фоне */
+  --color-accent: #90caf9;
+  --color-accent-hover: #bbdefb;
+  --color-accent-active: #64b5f6;
+  /* Облачные оттенки - приглушенные для декора на темном фоне */
+  --color-cloud: #37474f;
+  --color-cloud-light: #455a64;
+  /* Золотой - мягкий контраст */
+  --color-gold: #ffcc80;
+  --color-gold-hover: #ffb74d;
+  --color-gold-active: #ffa726;
+  /* Зеленый - контрастный для успешных действий */
+  --color-green: #66bb6a;
+  --color-green-hover: #81c784;
+  --color-green-active: #4caf50;
+  /* Серые оттенки - темные для фонов и элементов */
+  --color-gray: #78909c;
+  --color-gray-light: #546e7a;
+  --color-gray-lighter: #455a64;
+  /* Фоны - темные (черный и темно-серый) */
   --color-background: #121212;
-  --color-surface: #1E1E1E;
-  --color-surface-elevated: #2D2D2D;
-  --color-text-primary: #FFFFFF;
-  --color-text-secondary: #B0B0B0;
-  /* И чуть мягче в тёмной теме, но заметно */
-  --glow-1: rgba(255, 255, 255, 0.12);
-  --glow-2: rgba(255, 255, 255, 0.08);
+  --color-surface: #1e1e1e;
+  --color-surface-elevated: #2d2d2d;
+  /* Текст - белый и светло-серый на темном фоне */
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #b0b0b0;
+  /* Подсветки для темной темы - голубые как контрастные */
+  --glow-1: rgba(100, 181, 246, 0.25);
+  --glow-2: rgba(144, 202, 249, 0.15);
 }
 
 body {
   margin: 0;
   min-height: 100vh;
-  background: linear-gradient(180deg, var(--color-background) 0%, var(--color-surface) 40%);
+  /* Градиент в стиле китайской росписи - для светлой темы: от белого к мягкому голубому */
+  background: linear-gradient(180deg, var(--color-background) 0%, var(--color-surface) 50%, var(--color-cloud-light) 100%);
   transition: background 0.35s ease, color 0.35s ease;
+}
+
+/* Переопределение градиента для темной темы - темный фон */
+html.dark body,
+body.dark {
+  background: linear-gradient(180deg, var(--color-background) 0%, var(--color-surface) 50%, var(--color-surface-elevated) 100%);
 }
 
 #root {
