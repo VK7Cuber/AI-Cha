@@ -21,4 +21,13 @@
    - `cd docker && docker-compose up --build`
    - фронтенд доступен на `http://localhost`, API — `http://localhost/api`
 
+### Если во фронтенде ошибки `ECONNRESET` при запросах `/api/*`
+На macOS `localhost` часто резолвится в IPv6 `::1`. Если backend слушает только IPv4, Vite proxy может падать с `ECONNRESET`.
+
+- **Проверка**:
+  - `curl -4 http://localhost:8080/api/health` — должно работать
+  - `curl -6 http://localhost:8080/api/health` — если падает, это оно
+- **Решение**: фронтенд по умолчанию проксирует API на `http://127.0.0.1:8080` (IPv4).
+  - После обновления конфигурации перезапустите Vite (`Ctrl+C` → `npm run dev`).
+
 Подробные шаги разработки описаны в `docs/context/DevelopmentPlan_Base.md`.

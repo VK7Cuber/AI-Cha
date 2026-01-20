@@ -1,16 +1,29 @@
 import { Link, useNavigate } from 'react-router-dom';
+import { useState } from 'react';
 import ThemeToggle from '../../common/ThemeToggle/ThemeToggle';
 import Button from '../../common/Button/Button';
+import Modal from '../../common/Modal/Modal';
 import { useCartStore } from '../../../store/cartStore';
 import logo from '../../../img/AI_Cha_logo.png';
 
 function CartScreen() {
   const navigate = useNavigate();
   const { items, totalAmount, totalItems, updateQuantity, removeItem, clearCart } = useCartStore();
+  const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
 
   const goToPayment = () => {
     if (items.length === 0) return;
     navigate('/payment');
+  };
+
+  const handleClearRequest = () => {
+    if (items.length === 0) return;
+    setIsClearConfirmOpen(true);
+  };
+
+  const handleConfirmClear = () => {
+    clearCart();
+    setIsClearConfirmOpen(false);
   };
 
   return (
@@ -102,20 +115,66 @@ function CartScreen() {
 
       <div className="fixed bottom-5 left-1/2 z-30 w-[min(90%,720px)] -translate-x-1/2 rounded-3xl bg-surface/90 px-5 py-4 shadow-2xl backdrop-blur">
         <div className="flex items-center justify-between gap-3">
-          <div className="text-button text-textSecondary">
-            Кол-во: <span className="font-semibold text-textPrimary">{totalItems}</span> · Сумма:{' '}
-            <span className="font-semibold text-textPrimary">{totalAmount.toFixed(0)} ₽</span>
+          <div className="flex flex-col gap-2 rounded-2xl border border-accent/70 bg-surfaceElevated/70 px-4 py-3 text-textPrimary shadow-sm">
+            <div className="text-h2 font-semibold">
+              Кол-во:{' '}
+              <span className="font-bold text-primary">
+                {totalItems}
+              </span>
+            </div>
+            <div className="text-h2 font-semibold">
+              Сумма:{' '}
+              <span className="font-bold text-primary">
+                {totalAmount.toFixed(0)} ₽
+              </span>
+            </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="secondary" onClick={clearCart}>
+            <Button
+              variant="secondary"
+              onClick={handleClearRequest}
+              disabled={items.length === 0}
+              className="!bg-red-500 !text-white hover:!bg-red-600 active:!bg-red-700"
+            >
               Очистить
             </Button>
-            <Button size="large" onClick={goToPayment} disabled={items.length === 0}>
+            <Button
+              size="large"
+              onClick={goToPayment}
+              disabled={items.length === 0}
+              className="!bg-green !text-white hover:!bg-greenHover active:!bg-greenActive"
+            >
               Оплатить
             </Button>
           </div>
         </div>
       </div>
+
+      <Modal
+        open={isClearConfirmOpen}
+        onClose={() => setIsClearConfirmOpen(false)}
+        title="Подтверждение"
+      >
+        <div className="space-y-6 text-h3">
+          <p>Вы уверены, что хотите очистить корзину?</p>
+          <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
+            <Button
+              variant="secondary"
+              onClick={() => setIsClearConfirmOpen(false)}
+              className="!bg-gray !text-white hover:!bg-grayLight active:!bg-gray"
+            >
+              Отмена
+            </Button>
+            <Button
+              variant="secondary"
+              onClick={handleConfirmClear}
+              className="!bg-red-500 !text-white hover:!bg-red-600 active:!bg-red-700"
+            >
+              Очистить
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

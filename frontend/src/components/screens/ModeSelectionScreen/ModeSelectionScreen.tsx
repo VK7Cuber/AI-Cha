@@ -53,7 +53,7 @@ function ModeSelectionScreen() {
           </div>
           <div className="relative text-h2 font-semibold text-textPrimary">AI или обычный заказ?</div>
           <div className="relative max-w-2xl text-h3 text-textSecondary/80">
-            ИИ может помочь с выбором подходящего напитка. Попробуем?
+            ИИ может придумать для вас подходящий напиток. Попробуем?
           </div>
         </div>
 

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import ThemeToggle from '../../common/ThemeToggle/ThemeToggle';
 import Loading from '../../common/Loading/Loading';
 import { useProductsStore } from '../../../store/productsStore';
@@ -7,17 +7,29 @@ import { useCartStore } from '../../../store/cartStore';
 import ProductCard from '../../products/ProductCard/ProductCard';
 import Button from '../../common/Button/Button';
 import logo from '../../../img/AI_Cha_logo.png';
+import { Product } from '../../../types/product';
 
 function CatalogScreen() {
   const { products, loading, error, loadAll, categories } = useProductsStore();
   const addItem = useCartStore((s) => s.addItem);
+  const totalAmount = useCartStore((s) => s.totalAmount);
 
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [search, setSearch] = useState('');
+  const [isCartShaking, setIsCartShaking] = useState(false);
+  const shakeTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     loadAll();
   }, [loadAll]);
+
+  useEffect(() => {
+    return () => {
+      if (shakeTimerRef.current) {
+        window.clearTimeout(shakeTimerRef.current);
+      }
+    };
+  }, []);
 
   const list = Array.isArray(products) ? products : [];
 
@@ -32,6 +44,22 @@ function CatalogScreen() {
         (p.description_ru && p.description_ru.toLowerCase().includes(q))
     );
   }, [activeCategory, list, search]);
+
+  const triggerCartShake = () => {
+    if (shakeTimerRef.current) {
+      window.clearTimeout(shakeTimerRef.current);
+    }
+    setIsCartShaking(false);
+    window.requestAnimationFrame(() => {
+      setIsCartShaking(true);
+      shakeTimerRef.current = window.setTimeout(() => setIsCartShaking(false), 350);
+    });
+  };
+
+  const handleAdd = (product: Product) => {
+    addItem(product, 1);
+    triggerCartShake();
+  };
 
   return (
     <div className="relative min-h-screen bg-gradient-to-b from-primary/10 via-surface to-background text-textPrimary transition-colors">
@@ -50,7 +78,7 @@ function CatalogScreen() {
             <div className="text-h1 font-bold text-primary">Каталог</div>
           </div>
           <div className="flex items-center gap-3">
-            <div className="hidden sm:block">
+            <div className="hidden">
               <input
                 className="w-72 rounded-2xl border border-grayLight bg-surfaceElevated/90 px-4 py-4 text-h3 text-textPrimary shadow-inner focus:outline-none focus-visible:ring-2 focus-visible:ring-primary placeholder:text-textSecondary"
                 placeholder="Поиск..."
@@ -62,16 +90,18 @@ function CatalogScreen() {
             <ThemeToggle />
             <Link
               to="/cart"
-              className="rounded-full bg-primary px-7 py-4 text-h2 font-semibold text-white shadow-lg transition hover:scale-105 active:scale-95"
+              className={`rounded-full bg-primary px-7 py-4 text-h1 font-semibold text-white shadow-lg transition hover:scale-105 active:scale-95 ${
+                isCartShaking ? 'cart-shake' : ''
+              }`}
             >
-              Корзина
+              🛒 {totalAmount.toFixed(0)} ₽
             </Link>
           </div>
         </div>
       </header>
 
       <main className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-6 pb-10 pt-6">
-        <div className="sm:hidden">
+        <div className="hidden">
           <input
             className="w-full rounded-2xl border border-grayLight bg-surface px-4 py-4 text-h3 text-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary placeholder:text-textSecondary"
             placeholder="Поиск..."
@@ -119,21 +149,13 @@ function CatalogScreen() {
             ) : (
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
                 {filtered.map((product) => (
-                  <ProductCard key={product.id} product={product} onAdd={(p) => addItem(p, 1)} />
+                  <ProductCard key={product.id} product={product} onAdd={handleAdd} />
                 ))}
               </div>
             )}
           </>
         )}
       </main>
-
-      <Link
-        to="/payment"
-        aria-label="Перейти к оплате"
-        className="fixed bottom-6 right-6 z-30 flex h-20 w-20 items-center justify-center rounded-full bg-primary text-white shadow-xl transition hover:scale-105 active:scale-95"
-      >
-        <p className="text-h1">₽</p>
-      </Link>
     </div>
   );
 }

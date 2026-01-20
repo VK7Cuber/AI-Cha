@@ -23,7 +23,7 @@ interface NavigationState {
 export const useNavigationStore = create<NavigationState>((set, get) => ({
   currentScreen: '/',
   previousScreen: null,
-  inactivityTimeout: 60000,
+  inactivityTimeout: 120000,
   orderMode: 'manual',
 
   navigate: (screen) =>
@@ -39,7 +39,7 @@ export const useNavigationStore = create<NavigationState>((set, get) => ({
     return previousScreen;
   },
 
-  resetInactivityTimeout: (ms = 60000) => set({ inactivityTimeout: ms }),
+  resetInactivityTimeout: (ms = 120000) => set({ inactivityTimeout: ms }),
 
   setOrderMode: (mode) => set({ orderMode: mode })
 }));
