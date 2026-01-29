@@ -45,6 +45,44 @@ function shouldRetry(statusCode) {
   return statusCode >= 500;
 }
 
+function normalizeFormat(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function resolveRestFormat(formatCandidate) {
+  const format = normalizeFormat(formatCandidate);
+  if (!format) return sttConfig.recognition.format;
+  if (format === 'pcm16' || format === 'lpcm' || format === 'raw') return 'lpcm';
+  if (format === 'oggopus' || format === 'ogg_opus' || format === 'opus') return 'oggopus';
+  if (format === 'mp3') return 'mp3';
+  return sttConfig.recognition.format;
+}
+
+function resolveStreamingAudioFormat(formatCandidate) {
+  const format = normalizeFormat(formatCandidate);
+  if (format === 'oggopus' || format === 'ogg_opus' || format === 'opus') {
+    return {
+      container_audio: {
+        container_audio_type: 'OGG_OPUS'
+      }
+    };
+  }
+  if (format === 'wav') {
+    return {
+      container_audio: {
+        container_audio_type: 'WAV'
+      }
+    };
+  }
+  return {
+    raw_audio: {
+      audio_encoding: 'LINEAR16_PCM',
+      sample_rate_hertz: sttConfig.recognition.sampleRateHz,
+      audio_channel_count: sttConfig.recognition.channels
+    }
+  };
+}
+
 async function fetchWithTimeout(url, options, timeoutMs) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -69,9 +107,21 @@ function extractTextFromAlternatives(update) {
   return update.alternatives[0]?.text || '';
 }
 
+function extractBestAlternative(update) {
+  if (!update?.alternatives?.length) {
+    return { text: '', confidence: null };
+  }
+  const alternative = update.alternatives[0] || {};
+  const confidence = Number.isFinite(alternative.confidence) ? alternative.confidence : null;
+  return {
+    text: alternative.text || '',
+    confidence
+  };
+}
+
 async function recognizeViaYandex(audioBuffer, options = {}) {
   const language = options.language || sttConfig.recognition.language;
-  const format = options.format || sttConfig.recognition.format;
+  const format = options.format || resolveRestFormat(options.inputFormat || sttConfig.input.format);
   const sampleRateHz = options.sampleRateHz || sttConfig.recognition.sampleRateHz;
 
   const params = new URLSearchParams({
@@ -79,7 +129,7 @@ async function recognizeViaYandex(audioBuffer, options = {}) {
     format: format
   });
 
-  if (sampleRateHz && format !== 'oggopus') {
+  if (sampleRateHz && format === 'lpcm') {
     params.set('sampleRateHertz', String(sampleRateHz));
   }
 
@@ -133,7 +183,7 @@ async function recognizeViaYandex(audioBuffer, options = {}) {
   return { text: '', confidence: null, raw: null };
 }
 
-function buildStreamingOptions() {
+function buildStreamingOptions(inputFormat = sttConfig.input.format) {
   const normalization = sttConfig.model.textNormalization === 'enabled'
     ? 'TEXT_NORMALIZATION_ENABLED'
     : 'TEXT_NORMALIZATION_DISABLED';
@@ -141,13 +191,7 @@ function buildStreamingOptions() {
   return {
     recognition_model: {
       model: sttConfig.model.name,
-      audio_format: {
-        raw_audio: {
-          audio_encoding: 'LINEAR16_PCM',
-          sample_rate_hertz: sttConfig.recognition.sampleRateHz,
-          audio_channel_count: sttConfig.recognition.channels
-        }
-      },
+      audio_format: resolveStreamingAudioFormat(inputFormat),
       text_normalization: {
         text_normalization: normalization,
         profanity_filter: sttConfig.model.profanityFilter
@@ -163,14 +207,10 @@ function buildStreamingOptions() {
   };
 }
 
-function createStreamingSession() {
+function createStreamingSession(options = {}) {
   if (!Recognizer) {
     throw new Error('gRPC Recognizer proto was not loaded');
   }
-
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/a176f22f-f145-4f71-8b93-2ee49b515c57',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'sttService.js:170',message:'createStreamingSession',data:{host:'stt.api.cloud.yandex.net:443',hasApiKey:Boolean(sttConfig.yandex.apiKey),hasIamToken:Boolean(sttConfig.yandex.iamToken),hasFolderId:Boolean(sttConfig.yandex.folderId)},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H11'})}).catch(()=>{});
-  // #endregion
 
   let rootCert = null;
   const caPathRaw = process.env.YANDEX_GRPC_ROOT_CA || process.env.NODE_EXTRA_CA_CERTS;
@@ -192,10 +232,7 @@ function createStreamingSession() {
   const call = client.RecognizeStreaming(metadata);
   let isClosed = false;
 
-  call.write({ session_options: buildStreamingOptions() });
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/a176f22f-f145-4f71-8b93-2ee49b515c57',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'sttService.js:198',message:'stream initialized',data:{optionsSent:true},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H11'})}).catch(()=>{});
-  // #endregion
+  call.write({ session_options: buildStreamingOptions(options.inputFormat) });
 
   return {
     onData(handler) {
@@ -210,6 +247,14 @@ function createStreamingSession() {
     sendAudioChunk(buffer) {
       if (isClosed) return;
       call.write({ chunk: { data: buffer } });
+    },
+    sendSilenceChunk(durationMs) {
+      if (isClosed) return;
+      if (!Number.isFinite(durationMs) || durationMs <= 0) return;
+      call.write({ silence_chunk: { duration_ms: Math.floor(durationMs) } });
+    },
+    isClosed() {
+      return isClosed;
     },
     finalize() {
       if (isClosed) return;
@@ -229,8 +274,10 @@ export const sttService = {
     if (!audioBuffer || audioBuffer.length === 0) {
       throw new Error('Audio buffer is empty');
     }
-    return recognizeViaYandex(audioBuffer, options);
+    return recognizeViaYandex(audioBuffer, { inputFormat: sttConfig.input.format, ...options });
   },
   createStreamingSession,
-  extractTextFromAlternatives
+  extractTextFromAlternatives,
+  extractBestAlternative,
+  resolveRestFormat
 };

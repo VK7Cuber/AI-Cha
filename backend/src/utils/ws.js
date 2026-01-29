@@ -13,11 +13,23 @@ const MAX_AUDIO_BUFFER_BYTES = 1024 * 1024; // 1MB для защиты памя�
 const WS_DEBUG = process.env.WS_DEBUG === 'true';
 const DEFAULT_AUDIO_PORT = 8081;
 const DEFAULT_PUBLIC_PORT = 8082;
+const STREAMING_FORMATS = new Set([
+  'pcm16',
+  'lpcm',
+  'raw',
+  'oggopus',
+  'ogg_opus',
+  'opus',
+  'wav',
+  'mp3'
+]);
 
 const resolvePort = (value, fallback) => {
   const port = Number(value);
   return Number.isFinite(port) && port > 0 ? port : fallback;
 };
+
+const normalizeFormat = (value) => String(value || '').trim().toLowerCase();
 
 const getPathname = (request) => {
   const host = request.headers.host || 'localhost';
@@ -32,62 +44,269 @@ function sendJson(socket, event, payload = {}) {
 }
 
 function setupAudioConnection(socket, { sessionId }) {
+  const inputFormat = normalizeFormat(sttConfig.input.format);
+  const streamingSupported = STREAMING_FORMATS.has(inputFormat);
+  const sttDisabled = process.env.WS_DISABLE_STT === 'true';
+  const streamingEnabled = streamingSupported && !sttDisabled;
+  const maxRetries = sttConfig?.retry?.maxRetries ?? 3;
+  const backoffMs = sttConfig?.retry?.backoffMs ?? 500;
+  const sessionTimeoutMs = sttConfig?.streaming?.sessionTimeoutMs ?? 10000;
+
   const state = {
     sessionId,
     buffer: [],
     bufferBytes: 0,
     lastChunkAt: null,
+    lastSttEventAt: null,
+    lastStreamCreatedAt: null,
+    finalizeRequestedAt: null,
     processing: false,
     sttStream: null,
-    audioProcessor: null
+    audioProcessor: null,
+    speechActive: false,
+    lowVolumeNotified: false,
+    reconnectAttempts: 0,
+    streamSeq: 0,
+    finalizingStreamId: null,
+    streamTimer: null,
+    streamingDisabled: !streamingEnabled,
+    metrics: {
+      successes: 0,
+      errors: 0,
+      latencyMsTotal: 0,
+      lastLatencyMs: null
+    }
   };
 
-  const streamingEnabled = sttConfig.input.format === 'pcm16';
-  const sttDisabled = process.env.WS_DISABLE_STT === 'true';
-  if (streamingEnabled && !sttDisabled) {
-    try {
-      if (WS_DEBUG) {
-        console.log('[ws] init audio session', { sessionId });
-      }
-      state.audioProcessor = new AudioProcessor({
-        inputFormat: sttConfig.input.format,
-        inputSampleRate: sttConfig.input.sampleRateHz,
-        inputChannels: sttConfig.input.channels
-      });
-      state.sttStream = sttService.createStreamingSession();
+  if (inputFormat === 'pcm16') {
+    state.audioProcessor = new AudioProcessor({
+      inputFormat: sttConfig.input.format,
+      inputSampleRate: sttConfig.input.sampleRateHz,
+      inputChannels: sttConfig.input.channels
+    });
+  }
 
-      state.sttStream.onData((response) => {
-        if (response.partial) {
-          const text = sttService.extractTextFromAlternatives(response.partial);
-          sendJson(socket, 'partial', { sessionId, text });
-        }
-        if (response.final) {
-          const text = sttService.extractTextFromAlternatives(response.final);
-          sendJson(socket, 'transcript', { sessionId, text });
-        }
-        if (response.status_code?.message) {
-          sendJson(socket, 'status_code', {
-            sessionId,
-            code: response.status_code.code_type,
-            message: response.status_code.message
-          });
-        }
-      });
+  const resetBuffer = () => {
+    state.buffer = [];
+    state.bufferBytes = 0;
+  };
 
-      state.sttStream.onError((error) => {
-        console.error('[ws] stt stream error:', error);
+  const recordSttEvent = () => {
+    state.lastSttEventAt = Date.now();
+    state.reconnectAttempts = 0;
+  };
+
+  const recordLatency = (latencyMs) => {
+    if (!Number.isFinite(latencyMs)) return null;
+    state.metrics.lastLatencyMs = latencyMs;
+    state.metrics.latencyMsTotal += latencyMs;
+    return latencyMs;
+  };
+
+  const handleFinalResult = ({ text, confidence }, source, latencyMs = null) => {
+    const computedLatency =
+      latencyMs ?? (state.finalizeRequestedAt ? Date.now() - state.finalizeRequestedAt : null);
+    const normalizedLatency = recordLatency(computedLatency);
+    state.metrics.successes += 1;
+    state.finalizeRequestedAt = null;
+    state.finalizingStreamId = null;
+    state.speechActive = false;
+    state.lowVolumeNotified = false;
+    resetBuffer();
+    state.audioProcessor?.reset();
+    sendJson(socket, 'transcript', {
+      sessionId,
+      text,
+      confidence,
+      latencyMs: normalizedLatency,
+      source
+    });
+    sendJson(socket, 'status', { state: 'listening', sessionId });
+    if (WS_DEBUG) {
+      const successRate = state.metrics.successes + state.metrics.errors
+        ? state.metrics.successes / (state.metrics.successes + state.metrics.errors)
+        : 1;
+      console.log('[ws] stt metrics', {
+        sessionId,
+        latencyMs: normalizedLatency,
+        confidence,
+        successRate
+      });
+    }
+  };
+
+  const handleStreamFailure = (error, streamId, reason) => {
+    if (streamId !== state.streamSeq) return;
+    if (streamId === state.finalizingStreamId && (reason === 'end' || reason === 'closed')) {
+      state.sttStream = null;
+      if (state.finalizeRequestedAt) {
+        state.metrics.errors += 1;
+        state.finalizeRequestedAt = null;
+        state.finalizingStreamId = null;
         sendJson(socket, 'error', {
           sessionId,
-          message: error?.message || 'STT stream error'
+          message: 'STT stream closed before final result'
         });
-      });
-    } catch (error) {
-      if (WS_DEBUG) {
-        console.error('[ws] stt init error', error);
+        return;
       }
-      sendJson(socket, 'error', { sessionId, message: error?.message || 'STT init error' });
+      state.finalizingStreamId = null;
+      return;
     }
+    state.metrics.errors += 1;
+    const message = error?.message || 'STT stream error';
+    if (WS_DEBUG) {
+      console.error('[ws] stt stream error', { sessionId, reason, message });
+    }
+    sendJson(socket, 'error', { sessionId, message });
+    state.sttStream?.close();
+    state.sttStream = null;
+
+    if (state.streamingDisabled) return;
+    if (state.reconnectAttempts >= maxRetries) {
+      state.streamingDisabled = true;
+      return;
+    }
+    const attempt = state.reconnectAttempts + 1;
+    state.reconnectAttempts = attempt;
+    const delay = backoffMs * attempt;
+    setTimeout(() => {
+      if (socket.readyState !== socket.OPEN || state.streamingDisabled) return;
+      initStreamingSession();
+    }, delay);
+  };
+
+  const handleStreamData = (response, streamId) => {
+    if (streamId !== state.streamSeq) return;
+    recordSttEvent();
+
+    if (response.partial) {
+      const { text, confidence } = sttService.extractBestAlternative(response.partial);
+      sendJson(socket, 'partial', { sessionId, text, confidence });
+    }
+    if (response.final) {
+      const { text, confidence } = sttService.extractBestAlternative(response.final);
+      handleFinalResult({ text, confidence }, 'stream');
+    }
+    if (response.eou_update) {
+      if (!state.finalizeRequestedAt) {
+        state.finalizeRequestedAt = Date.now();
+      }
+      sendJson(socket, 'eou', { sessionId, timeMs: response.eou_update.time_ms });
+    }
+    if (response.status_code?.message) {
+      sendJson(socket, 'status_code', {
+        sessionId,
+        code: response.status_code.code_type,
+        message: response.status_code.message
+      });
+      if (response.status_code.code_type === 'CLOSED') {
+        handleStreamFailure(new Error(response.status_code.message), streamId, 'closed');
+      }
+    }
+  };
+
+  const initStreamingSession = () => {
+    if (state.streamingDisabled) return false;
+    const streamId = state.streamSeq + 1;
+    state.streamSeq = streamId;
+    try {
+      if (WS_DEBUG) {
+        console.log('[ws] init audio session', { sessionId, inputFormat });
+      }
+      if (inputFormat === 'pcm16' && !state.audioProcessor) {
+        state.audioProcessor = new AudioProcessor({
+          inputFormat: sttConfig.input.format,
+          inputSampleRate: sttConfig.input.sampleRateHz,
+          inputChannels: sttConfig.input.channels
+        });
+      }
+      const stream = sttService.createStreamingSession({ inputFormat: sttConfig.input.format });
+      state.sttStream = stream;
+      state.lastStreamCreatedAt = Date.now();
+      state.lastSttEventAt = null;
+      state.reconnectAttempts = 0;
+      stream.onData((response) => handleStreamData(response, streamId));
+      stream.onError((error) => handleStreamFailure(error, streamId, 'error'));
+      stream.onEnd(() => handleStreamFailure(new Error('STT stream ended'), streamId, 'end'));
+      return true;
+    } catch (error) {
+      handleStreamFailure(error, streamId, 'init');
+      return false;
+    }
+  };
+
+  if (streamingEnabled) {
+    initStreamingSession();
   }
+
+  if (streamingEnabled && sessionTimeoutMs > 0) {
+    state.streamTimer = setInterval(() => {
+      if (!state.sttStream) return;
+      const now = Date.now();
+      if (
+        state.finalizeRequestedAt &&
+        now - state.finalizeRequestedAt > sessionTimeoutMs
+      ) {
+        handleStreamFailure(new Error('STT finalize timeout'), state.streamSeq, 'timeout');
+        return;
+      }
+      if (!state.lastChunkAt) return;
+      if (now - state.lastChunkAt > sessionTimeoutMs) return;
+      const sttIdleMs = state.lastSttEventAt ? now - state.lastSttEventAt : null;
+      if (sttIdleMs === null || sttIdleMs > sessionTimeoutMs) {
+        handleStreamFailure(new Error('STT stream timeout'), state.streamSeq, 'timeout');
+      }
+    }, Math.min(sessionTimeoutMs, 1000));
+  }
+
+  const finalizeBufferedAudio = async (source) => {
+    if (state.processing) {
+      sendJson(socket, 'status', { state: 'thinking', sessionId });
+      return;
+    }
+    if (!state.finalizeRequestedAt) {
+      state.finalizeRequestedAt = Date.now();
+    }
+
+    if (state.sttStream && !state.sttStream.isClosed?.()) {
+      sendJson(socket, 'status', { state: 'thinking', sessionId });
+      state.finalizingStreamId = state.streamSeq;
+      state.sttStream.finalize();
+      state.sttStream = null;
+      return;
+    }
+
+    const audioBuffer = Buffer.concat(state.buffer);
+    if (!audioBuffer.length) {
+      state.finalizeRequestedAt = null;
+      return;
+    }
+    state.processing = true;
+    sendJson(socket, 'status', { state: 'thinking', sessionId });
+    const startedAt = Date.now();
+    try {
+      const restFormat = sttService.resolveRestFormat(sttConfig.input.format);
+      const result = await sttService.recognizeBuffer(audioBuffer, {
+        format: restFormat,
+        sampleRateHz: sttConfig.recognition.sampleRateHz
+      });
+      handleFinalResult(
+        { text: result.text, confidence: result.confidence },
+        source,
+        Date.now() - startedAt
+      );
+    } catch (error) {
+      state.metrics.errors += 1;
+      sendJson(socket, 'error', {
+        sessionId,
+        message: error?.message || 'STT error'
+      });
+      sendJson(socket, 'status', { state: 'listening', sessionId });
+      state.finalizeRequestedAt = null;
+    } finally {
+      state.processing = false;
+    }
+  };
 
   socket.on('message', async (data, isBinary) => {
     try {
@@ -96,32 +315,72 @@ function setupAudioConnection(socket, { sessionId }) {
           console.log('[ws] binary chunk', { sessionId, size: data?.length || 0 });
         }
         let chunk = Buffer.isBuffer(data) ? data : Buffer.from(data);
-        state.buffer.push(chunk);
-        state.bufferBytes += chunk.length;
         state.lastChunkAt = Date.now();
 
-        // Ограничение буфера
+        let processed = null;
+        if (state.audioProcessor) {
+          processed = state.audioProcessor.processChunk(chunk);
+          chunk = processed.buffer;
+          if (processed.isSpeech && !state.speechActive) {
+            state.speechActive = true;
+            state.lowVolumeNotified = false;
+            sendJson(socket, 'speech_start', { sessionId });
+          }
+          if (
+            !state.lowVolumeNotified &&
+            sttConfig.vad.enabled &&
+            processed.speechMs === 0 &&
+            processed.totalMs >= sttConfig.vad.minSpeechMs
+          ) {
+            state.lowVolumeNotified = true;
+            sendJson(socket, 'warning', {
+              sessionId,
+              code: 'low_volume',
+              message: 'Слишком тихий сигнал'
+            });
+          }
+        }
+
+        state.buffer.push(chunk);
+        state.bufferBytes += chunk.length;
+
         while (state.bufferBytes > MAX_AUDIO_BUFFER_BYTES && state.buffer.length > 1) {
           const removed = state.buffer.shift();
           state.bufferBytes -= removed.length;
         }
 
-        if (state.audioProcessor && state.sttStream) {
-          const processed = state.audioProcessor.processChunk(chunk);
-          chunk = processed.buffer;
-          state.sttStream.sendAudioChunk(chunk);
+        if (
+          !state.sttStream &&
+          streamingEnabled &&
+          !state.streamingDisabled &&
+          !state.finalizeRequestedAt
+        ) {
+          initStreamingSession();
+        }
 
-          if (processed.shouldFinalize) {
-            sendJson(socket, 'status', { state: 'thinking', sessionId });
-            state.sttStream.finalize();
+        if (state.sttStream) {
+          if (
+            processed &&
+            sttConfig.vad.enabled &&
+            processed.durationMs > 0 &&
+            !processed.isSpeech
+          ) {
+            state.sttStream.sendSilenceChunk?.(processed.durationMs);
+          } else {
+            state.sttStream.sendAudioChunk(chunk);
           }
+
+          if (processed?.shouldFinalize) {
+            await finalizeBufferedAudio('vad');
+          }
+        } else if (processed?.shouldFinalize) {
+          await finalizeBufferedAudio('vad');
         }
 
         sendJson(socket, 'status', { state: 'listening', sessionId });
         return;
       }
 
-      // Текстовые команды от клиента
       let message = null;
       try {
         message = JSON.parse(data.toString());
@@ -135,40 +394,7 @@ function setupAudioConnection(socket, { sessionId }) {
       }
 
       if (message?.event === 'finalize') {
-        if (state.processing) {
-          sendJson(socket, 'status', { state: 'thinking', sessionId });
-          return;
-        }
-
-        if (state.sttStream) {
-          sendJson(socket, 'status', { state: 'thinking', sessionId });
-          state.sttStream.finalize();
-          return;
-        }
-
-        const audioBuffer = Buffer.concat(state.buffer);
-        state.buffer = [];
-        state.bufferBytes = 0;
-        state.processing = true;
-
-        sendJson(socket, 'status', { state: 'thinking', sessionId });
-
-        try {
-          const result = await sttService.recognizeBuffer(audioBuffer);
-          sendJson(socket, 'transcript', {
-            sessionId,
-            text: result.text,
-            confidence: result.confidence
-          });
-        } catch (error) {
-          sendJson(socket, 'error', {
-            sessionId,
-            message: error?.message || 'STT error'
-          });
-        } finally {
-          state.processing = false;
-          sendJson(socket, 'status', { state: 'listening', sessionId });
-        }
+        await finalizeBufferedAudio('client');
         return;
       }
 
@@ -179,24 +405,20 @@ function setupAudioConnection(socket, { sessionId }) {
     }
   });
 
-  socket.on('close', () => {
-    if (WS_DEBUG) {
-      console.log('[ws] audio socket closed', { sessionId });
-    }
-    state.buffer = [];
-    state.bufferBytes = 0;
-    state.audioProcessor?.reset();
-    state.sttStream?.close();
-  });
-
   socket.on('close', (code, reason) => {
     if (WS_DEBUG) {
-      console.log('[ws] audio socket close code', {
+      console.log('[ws] audio socket closed', {
         sessionId,
         code,
         reason: reason?.toString()
       });
     }
+    if (state.streamTimer) {
+      clearInterval(state.streamTimer);
+    }
+    resetBuffer();
+    state.audioProcessor?.reset();
+    state.sttStream?.close();
   });
 
   socket.on('error', (error) => {

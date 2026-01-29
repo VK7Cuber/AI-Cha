@@ -94,8 +94,9 @@ export class AudioProcessor {
     }
 
     let shouldFinalize = false;
+    let silenceMs = null;
     if (this.vadConfig?.enabled) {
-      const silenceMs = this.lastSpeechMs === null ? this.totalMs : this.totalMs - this.lastSpeechMs;
+      silenceMs = this.lastSpeechMs === null ? this.totalMs : this.totalMs - this.lastSpeechMs;
       if (this.speechMs >= this.vadConfig.minSpeechMs && silenceMs >= this.vadConfig.silenceMs) {
         shouldFinalize = true;
       }
@@ -109,7 +110,10 @@ export class AudioProcessor {
       rms,
       isSpeech,
       shouldFinalize,
-      durationMs
+      durationMs,
+      silenceMs,
+      speechMs: this.speechMs,
+      totalMs: this.totalMs
     };
   }
 
@@ -120,7 +124,10 @@ export class AudioProcessor {
         rms: null,
         isSpeech: false,
         shouldFinalize: false,
-        durationMs: 0
+      durationMs: 0,
+      silenceMs: null,
+      speechMs: 0,
+      totalMs: 0
       };
     }
 
