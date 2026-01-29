@@ -8,7 +8,8 @@ import logo from '../../../img/AI_Cha_logo.png';
 
 type FilterKey = 'active' | OrderStatus | 'all';
 
-const WS_URL = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}`;
+const DEFAULT_WS_URL = `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}`;
+const WS_URL = (import.meta.env.VITE_WS_URL || DEFAULT_WS_URL).trim();
 
 const statusLabel: Record<OrderStatus, string> = {
   pending: 'Новый',

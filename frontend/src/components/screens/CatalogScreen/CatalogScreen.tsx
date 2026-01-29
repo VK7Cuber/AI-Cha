@@ -33,6 +33,20 @@ function CatalogScreen() {
 
   const list = Array.isArray(products) ? products : [];
 
+  const visibleCategories = useMemo(() => {
+    const order = ['tea-collection', 'coffee-collection', 'signature-drinks'];
+    const bySlug = new Map(categories.map((cat) => [cat.slug, cat]));
+    return order
+      .map((slug) => bySlug.get(slug))
+      .filter((cat): cat is (typeof categories)[number] => Boolean(cat));
+  }, [categories]);
+
+  useEffect(() => {
+    if (!activeCategory && visibleCategories.length > 0) {
+      setActiveCategory(visibleCategories[0]?.id ?? null);
+    }
+  }, [activeCategory, visibleCategories]);
+
   const filtered = useMemo(() => {
     const byCategory = activeCategory ? list.filter((p) => p.category_id === activeCategory) : list;
     if (!search.trim()) return byCategory;
@@ -111,16 +125,9 @@ function CatalogScreen() {
           />
         </div>
 
-        {categories.length > 0 && (
+        {visibleCategories.length > 0 && (
           <div className="flex gap-3 overflow-x-auto pb-2">
-            <Button
-              variant={activeCategory === null ? 'primary' : 'outline'}
-              size="small"
-              onClick={() => setActiveCategory(null)}
-            >
-              Все
-            </Button>
-            {categories.map((cat) => (
+            {visibleCategories.map((cat) => (
               <Button
                 key={cat.id}
                 variant={activeCategory === cat.id ? 'primary' : 'outline'}

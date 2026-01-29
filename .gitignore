@@ -2,6 +2,8 @@
 node_modules
 dist
 coverage
+gRPC_certificate
+*.pcm
 *.log
 npm-debug.log*
 yarn-debug.log*

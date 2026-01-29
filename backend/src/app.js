@@ -48,6 +48,7 @@ const start = async () => {
   try {
     await fastify.listen({ port: serverConfig.port, host: serverConfig.host });
     fastify.log.info(`Server running on port ${serverConfig.port}`);
+    fastify.log.info({ wsDebug: process.env.WS_DEBUG }, 'WS debug env');
     initWs(fastify.server);
   } catch (err) {
     fastify.log.error(err);
