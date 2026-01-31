@@ -22,7 +22,7 @@ export const ttsConfig = {
   },
   cache: {
     enabled: process.env.TTS_CACHE_ENABLED !== 'false',
-    maxEntries: Number(process.env.TTS_CACHE_MAX_ENTRIES || 500),
-    maxAgeDays: Number(process.env.TTS_CACHE_MAX_AGE_DAYS || 30)
+    maxEntries: Number(process.env.TTS_CACHE_MAX_ENTRIES || 100),
+    maxAgeDays: Number(process.env.TTS_CACHE_MAX_AGE_DAYS || 1)
   }
 };

@@ -28,6 +28,7 @@ export const ttsController = {
       }
 
       reply.header('Content-Type', result.contentType);
+      reply.header('X-Cache', result.cacheHit ? 'HIT' : 'MISS');
       reply.send(result.audioBuffer);
     } catch (error) {
       reply.code(500).send({ message: error?.message || 'Ошибка TTS' });

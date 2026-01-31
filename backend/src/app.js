@@ -8,6 +8,7 @@ import { registerRoutes } from './api/routes/index.js';
 import { loggerHook } from './api/middleware/logger.js';
 import { errorHandler } from './api/middleware/errorHandler.js';
 import { initWs } from './utils/ws.js';
+import { scheduleTtsPreload } from './services/ttsPreload.js';
 
 const fastify = Fastify({
   logger: {
@@ -50,6 +51,7 @@ const start = async () => {
     fastify.log.info(`Server running on port ${serverConfig.port}`);
     fastify.log.info({ wsDebug: process.env.WS_DEBUG }, 'WS debug env');
     initWs(fastify.server);
+    scheduleTtsPreload();
   } catch (err) {
     fastify.log.error(err);
     process.exit(1);

@@ -4,6 +4,8 @@ import { URL } from 'url';
 import { sttService } from '../services/sttService.js';
 import { AudioProcessor } from '../services/audioProcessor.js';
 import { sttConfig } from '../config/sttConfig.js';
+import { ttsService } from '../services/ttsService.js';
+import { ttsConfig } from '../config/ttsConfig.js';
 
 let wssAudio = null;
 let wssPublic = null;
@@ -13,6 +15,8 @@ const MAX_AUDIO_BUFFER_BYTES = 1024 * 1024; // 1MB для защиты памя�
 const WS_DEBUG = process.env.WS_DEBUG === 'true';
 const DEFAULT_AUDIO_PORT = 8081;
 const DEFAULT_PUBLIC_PORT = 8082;
+const DEFAULT_TTS_CHUNK_BYTES = 32 * 1024;
+const DEFAULT_TTS_CHUNK_DELAY_MS = 0;
 const STREAMING_FORMATS = new Set([
   'pcm16',
   'lpcm',
@@ -63,6 +67,7 @@ function setupAudioConnection(socket, { sessionId }) {
     processing: false,
     sttStream: null,
     audioProcessor: null,
+    ttsProcessing: false,
     speechActive: false,
     lowVolumeNotified: false,
     reconnectAttempts: 0,
@@ -419,6 +424,73 @@ function setupAudioConnection(socket, { sessionId }) {
 
       if (message?.event === 'finalize') {
         await finalizeBufferedAudio('client');
+        return;
+      }
+
+      if (message?.event === 'tts') {
+        if (state.ttsProcessing) {
+          sendJson(socket, 'tts_error', { sessionId, message: 'TTS is busy' });
+          return;
+        }
+
+        const payload = message?.payload || {};
+        const useSsml = Boolean(payload.ssml);
+        const input = useSsml ? payload.ssml : payload.text;
+
+        if (typeof input !== 'string' || !input.trim()) {
+          sendJson(socket, 'tts_error', { sessionId, message: 'TTS text is required' });
+          return;
+        }
+
+        state.ttsProcessing = true;
+        sendJson(socket, 'status', { state: 'speaking', sessionId });
+
+        try {
+          const result = await ttsService.synthesizeText(input, {
+            useSsml,
+            language: ttsConfig.synthesis.language,
+            voice: ttsConfig.synthesis.voice,
+            speed: ttsConfig.synthesis.speed,
+            emotion: ttsConfig.synthesis.emotion,
+            format: ttsConfig.synthesis.format
+          });
+
+          const audioBuffer = result?.audioBuffer;
+          if (!audioBuffer?.length) {
+            sendJson(socket, 'tts_error', { sessionId, message: 'TTS returned empty audio' });
+            return;
+          }
+
+          sendJson(socket, 'tts_start', {
+            sessionId,
+            contentType: result.contentType,
+            format: result.format,
+            cacheHit: Boolean(result.cacheHit),
+            bytes: audioBuffer.length
+          });
+
+          const chunkSize = Number(process.env.TTS_CHUNK_BYTES || DEFAULT_TTS_CHUNK_BYTES);
+          const delayMs = Number(process.env.TTS_CHUNK_DELAY_MS || DEFAULT_TTS_CHUNK_DELAY_MS);
+
+          for (let offset = 0; offset < audioBuffer.length; offset += chunkSize) {
+            if (socket.readyState !== socket.OPEN) break;
+            const chunk = audioBuffer.subarray(offset, offset + chunkSize);
+            socket.send(chunk, { binary: true });
+            if (delayMs > 0) {
+              await new Promise((resolve) => setTimeout(resolve, delayMs));
+            }
+          }
+
+          sendJson(socket, 'tts_end', { sessionId });
+        } catch (error) {
+          sendJson(socket, 'tts_error', {
+            sessionId,
+            message: error?.message || 'TTS error'
+          });
+        } finally {
+          state.ttsProcessing = false;
+          sendJson(socket, 'status', { state: 'listening', sessionId });
+        }
         return;
       }
 

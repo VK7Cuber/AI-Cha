@@ -1,4 +1,29 @@
+import fs from 'fs';
+import path from 'path';
+import { Agent } from 'undici';
 import { ttsConfig } from '../config/ttsConfig.js';
+import { ttsCacheManager } from './cacheManager.js';
+
+let httpsDispatcher = null;
+
+function resolveCaPath(rawPath) {
+  if (!rawPath) return null;
+  return path.isAbsolute(rawPath) ? rawPath : path.resolve(process.cwd(), rawPath);
+}
+
+function getDispatcher() {
+  if (httpsDispatcher) return httpsDispatcher;
+  const caPath = resolveCaPath(process.env.NODE_EXTRA_CA_CERTS);
+  if (!caPath) return null;
+  try {
+    const rootCert = fs.readFileSync(caPath);
+    httpsDispatcher = new Agent({ connect: { ca: rootCert } });
+    return httpsDispatcher;
+  } catch (error) {
+    console.warn('[tts] failed to read CA cert:', error?.message || error);
+    return null;
+  }
+}
 
 function getAuthHeader() {
   if (ttsConfig.yandex.apiKey) {
@@ -25,7 +50,12 @@ async function fetchWithTimeout(url, options, timeoutMs) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, { ...options, signal: controller.signal });
+    const dispatcher = getDispatcher();
+    return await fetch(url, {
+      ...options,
+      signal: controller.signal,
+      dispatcher: dispatcher || undefined
+    });
   } finally {
     clearTimeout(timeoutId);
   }
@@ -45,7 +75,7 @@ function buildSynthesisParams(text, options = {}) {
   const language = options.language || ttsConfig.synthesis.language;
   const voice = options.voice || ttsConfig.synthesis.voice;
   const speed = options.speed ?? ttsConfig.synthesis.speed;
-  const emotion = options.emotion || ttsConfig.synthesis.emotion;
+  const emotion = normalizeEmotion(options.emotion || ttsConfig.synthesis.emotion);
   const format = options.format || ttsConfig.synthesis.format;
 
   if (options.useSsml) {
@@ -73,6 +103,16 @@ function buildSynthesisParams(text, options = {}) {
       format
     }
   };
+}
+
+function normalizeEmotion(raw) {
+  const value = String(raw || '').trim().toLowerCase();
+  if (!value) return 'neutral';
+  if (value === 'friendly') return 'good';
+  const allowed = new Set(['neutral', 'good', 'evil', 'mixed']);
+  if (allowed.has(value)) return value;
+  console.warn('[tts] unsupported emotion, fallback to neutral:', value);
+  return 'neutral';
 }
 
 async function synthesizeViaYandex(text, options = {}) {
@@ -134,6 +174,27 @@ async function synthesizeViaYandex(text, options = {}) {
 
 export const ttsService = {
   async synthesizeText(text, options = {}) {
-    return synthesizeViaYandex(text, options);
+    const normalizedText = String(text || '').trim();
+    if (!normalizedText) {
+      throw new Error('Text is required for TTS synthesis');
+    }
+
+    const cacheOptions = {
+      useSsml: options.useSsml,
+      language: options.language,
+      voice: options.voice,
+      speed: options.speed,
+      emotion: options.emotion,
+      format: options.format
+    };
+
+    const cached = await ttsCacheManager.get(normalizedText, cacheOptions);
+    if (cached) {
+      return cached;
+    }
+
+    const result = await synthesizeViaYandex(normalizedText, options);
+    await ttsCacheManager.set(normalizedText, result, cacheOptions);
+    return { ...result, cacheHit: false };
   }
 };
