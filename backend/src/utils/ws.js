@@ -68,6 +68,9 @@ function setupAudioConnection(socket, { sessionId }) {
     reconnectAttempts: 0,
     streamSeq: 0,
     finalizingStreamId: null,
+    lastFinalStreamId: null,
+    lastFinalAt: null,
+    lastFailedStreamId: null,
     streamTimer: null,
     streamingDisabled: !streamingEnabled,
     metrics: {
@@ -103,13 +106,17 @@ function setupAudioConnection(socket, { sessionId }) {
     return latencyMs;
   };
 
-  const handleFinalResult = ({ text, confidence }, source, latencyMs = null) => {
+  const handleFinalResult = ({ text, confidence }, source, latencyMs = null, streamId = null) => {
     const computedLatency =
       latencyMs ?? (state.finalizeRequestedAt ? Date.now() - state.finalizeRequestedAt : null);
     const normalizedLatency = recordLatency(computedLatency);
     state.metrics.successes += 1;
     state.finalizeRequestedAt = null;
     state.finalizingStreamId = null;
+    if (source === 'stream' && Number.isFinite(streamId)) {
+      state.lastFinalStreamId = streamId;
+      state.lastFinalAt = Date.now();
+    }
     state.speechActive = false;
     state.lowVolumeNotified = false;
     resetBuffer();
@@ -137,6 +144,7 @@ function setupAudioConnection(socket, { sessionId }) {
 
   const handleStreamFailure = (error, streamId, reason) => {
     if (streamId !== state.streamSeq) return;
+    if (state.lastFailedStreamId === streamId) return;
     if (streamId === state.finalizingStreamId && (reason === 'end' || reason === 'closed')) {
       state.sttStream = null;
       if (state.finalizeRequestedAt) {
@@ -152,13 +160,26 @@ function setupAudioConnection(socket, { sessionId }) {
       state.finalizingStreamId = null;
       return;
     }
+    if (
+      (reason === 'end' || reason === 'closed') &&
+      streamId === state.lastFinalStreamId
+    ) {
+      state.sttStream = null;
+      state.finalizingStreamId = null;
+      state.lastFinalStreamId = null;
+      state.lastFinalAt = null;
+      return;
+    }
     state.metrics.errors += 1;
+    state.lastFailedStreamId = streamId;
     const message = error?.message || 'STT stream error';
     if (WS_DEBUG) {
       console.error('[ws] stt stream error', { sessionId, reason, message });
     }
     sendJson(socket, 'error', { sessionId, message });
-    state.sttStream?.close();
+    if (reason !== 'end' && reason !== 'closed') {
+      state.sttStream?.close();
+    }
     state.sttStream = null;
 
     if (state.streamingDisabled) return;
@@ -185,7 +206,7 @@ function setupAudioConnection(socket, { sessionId }) {
     }
     if (response.final) {
       const { text, confidence } = sttService.extractBestAlternative(response.final);
-      handleFinalResult({ text, confidence }, 'stream');
+      handleFinalResult({ text, confidence }, 'stream', null, streamId);
     }
     if (response.eou_update) {
       if (!state.finalizeRequestedAt) {
@@ -225,6 +246,9 @@ function setupAudioConnection(socket, { sessionId }) {
       state.lastStreamCreatedAt = Date.now();
       state.lastSttEventAt = null;
       state.reconnectAttempts = 0;
+      state.lastFailedStreamId = null;
+      state.lastFinalStreamId = null;
+      state.lastFinalAt = null;
       stream.onData((response) => handleStreamData(response, streamId));
       stream.onError((error) => handleStreamFailure(error, streamId, 'error'));
       stream.onEnd(() => handleStreamFailure(new Error('STT stream ended'), streamId, 'end'));

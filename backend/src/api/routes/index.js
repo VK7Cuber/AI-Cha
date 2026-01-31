@@ -5,6 +5,7 @@ import { orderRoutes } from './orders.js';
 import { ratingRoutes } from './ratings.js';
 import { ingredientRoutes } from './ingredients.js';
 import { recipeRoutes } from './recipes.js';
+import { ttsRoutes } from './tts.js';
 
 export const registerRoutes = (fastify) => {
   fastify.register(healthRoutes, { prefix: '/api/health' });
@@ -14,5 +15,6 @@ export const registerRoutes = (fastify) => {
   fastify.register(ratingRoutes, { prefix: '/api/ratings' });
   fastify.register(ingredientRoutes, { prefix: '/api/ingredients' });
   fastify.register(recipeRoutes, { prefix: '/api/recipes' });
+  fastify.register(ttsRoutes, { prefix: '/api/tts' });
 };
 
