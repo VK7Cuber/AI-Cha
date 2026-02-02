@@ -57,7 +57,7 @@ function WelcomeScreen() {
 
       <div className="z-10 flex max-w-3xl flex-col items-center gap-6 px-6">
         <div className="flex flex-col items-center gap-4">
-          <img src={logo} alt="AI Cha logo" className="max-h-80 w-full max-w-3xl animate-fadeIn drop-shadow-xl object-contain" />
+          <img src={logo} alt="AI Cha logo" className="max-h-96 w-full max-w-3xl animate-fadeIn drop-shadow-xl object-contain" />
         </div>
 
         <div className="space-y-2 text-h2 font-semibold animate-fadeIn" style={{ animationDelay: '0.1s' }}>

@@ -59,7 +59,7 @@ function ModeSelectionScreen() {
 
         <div className="flex w-full max-w-3xl flex-col gap-4">
           <Button size="large" className="w-full py-5 text-h2" onClick={onAiSoon}>
-            Подобрать товар (скоро)
+            Подобрать товар
           </Button>
           <Button size="large" variant="secondary" className="w-full py-5 text-h2" onClick={onManual}>
             Обычный заказ
