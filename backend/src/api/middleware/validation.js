@@ -51,3 +51,34 @@ export const validateRating = async (request, reply) => {
   }
 };
 
+export const validateDialogStart = async (request, reply) => {
+  const { terminal_id, terminalId, language } = request.body || {};
+  const resolvedTerminalId = terminal_id || terminalId;
+  if (resolvedTerminalId && typeof resolvedTerminalId !== 'string') {
+    return badRequest(reply, 'terminal_id должен быть строкой');
+  }
+  if (language && typeof language !== 'string') {
+    return badRequest(reply, 'language должен быть строкой');
+  }
+};
+
+export const validateDialogMessage = async (request, reply) => {
+  const { text } = request.body || {};
+  if (!text || typeof text !== 'string' || !text.trim()) {
+    return badRequest(reply, 'text обязателен');
+  }
+  const { audio_duration_ms, stt_confidence } = request.body || {};
+  if (audio_duration_ms !== undefined && audio_duration_ms !== null) {
+    const duration = Number(audio_duration_ms);
+    if (!Number.isFinite(duration) || duration < 0) {
+      return badRequest(reply, 'audio_duration_ms должен быть >= 0');
+    }
+  }
+  if (stt_confidence !== undefined && stt_confidence !== null) {
+    const confidence = Number(stt_confidence);
+    if (!Number.isFinite(confidence) || confidence < 0 || confidence > 1) {
+      return badRequest(reply, 'stt_confidence должен быть между 0 и 1');
+    }
+  }
+};
+
