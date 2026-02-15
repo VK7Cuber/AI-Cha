@@ -25,6 +25,22 @@ function pickTemplate(category) {
   return options[index];
 }
 
+function normalizeAssistantText(text) {
+  return String(text || '').replace(/\s+/g, ' ').trim();
+}
+
+async function generateGreetingQuestion() {
+  const instruction =
+    'Сформулируй короткий приветственный вопрос для начала диалога. ' +
+    'Один вопрос, 1–2 предложения, до 20–30 слов, без перечисления нескольких вопросов. ' +
+    'Вопрос должен помочь понять вкусовые предпочтения или настроение клиента.';
+  const response = await aiModelService.chatCompletion({
+    systemPrompt,
+    messages: [{ role: 'user', content: instruction }]
+  });
+  return normalizeAssistantText(response.content);
+}
+
 function buildPromptWithHint(nextQuestion) {
   if (!nextQuestion) return systemPrompt;
   return `${systemPrompt}\n\nСледующий вопрос, который нужно задать (можно перефразировать, но смысл сохранить): ${nextQuestion}`;
@@ -55,7 +71,15 @@ export const dialogService = {
       language
     });
 
-    const firstQuestion = pickTemplate('greeting');
+    let firstQuestion = '';
+    try {
+      firstQuestion = await generateGreetingQuestion();
+    } catch {
+      firstQuestion = '';
+    }
+    if (!firstQuestion) {
+      firstQuestion = pickTemplate('greeting');
+    }
     if (firstQuestion) {
       await DialogMessage.createAssistantMessage(session.id, firstQuestion);
       await session.incrementQuestions();

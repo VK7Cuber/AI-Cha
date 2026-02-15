@@ -82,3 +82,26 @@ export const validateDialogMessage = async (request, reply) => {
   }
 };
 
+export const validateDialogSessionParam = async (request, reply) => {
+  const { sessionId } = request.params || {};
+  if (!sessionId || typeof sessionId !== 'string') {
+    return badRequest(reply, 'sessionId обязателен');
+  }
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(sessionId)) {
+    return badRequest(reply, 'sessionId должен быть UUID');
+  }
+};
+
+export const validateGenerateRecipe = async (request, reply) => {
+  const { session_id } = request.body || {};
+  if (!session_id || typeof session_id !== 'string') {
+    return badRequest(reply, 'session_id обязателен');
+  }
+  const uuidRegex =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (!uuidRegex.test(session_id)) {
+    return badRequest(reply, 'session_id должен быть UUID');
+  }
+};

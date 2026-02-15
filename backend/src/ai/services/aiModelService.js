@@ -18,7 +18,7 @@ function resolveCaPath(rawPath) {
 
 function getDispatcher() {
   if (httpsDispatcher) return httpsDispatcher;
-  const caPath = resolveCaPath(process.env.NODE_EXTRA_CA_CERTS);
+  const caPath = resolveCaPath(process.env.GIGACHAT_CA_CERT || process.env.NODE_EXTRA_CA_CERTS);
   if (!caPath) return null;
   try {
     const rootCert = fs.readFileSync(caPath);
