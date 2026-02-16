@@ -86,10 +86,10 @@ function CatalogScreen() {
       </div>
 
       <header className="sticky top-0 z-20 bg-surface/85 backdrop-blur-md shadow-md">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-6 py-4">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-6 py-4 max-[1100px]:px-4 max-[1100px]:py-3">
           <div className="flex items-center gap-3">
-            <img src={logo} alt="AI Cha" className="h-11 w-auto object-contain" />
-            <div className="text-h1 font-bold text-primary">Каталог</div>
+            <img src={logo} alt="AI Cha" className="h-11 w-auto object-contain max-[1100px]:h-9" />
+            <div className="text-h1 font-bold text-primary max-[1100px]:text-h2">Каталог</div>
           </div>
           <div className="flex items-center gap-3">
             <div className="hidden">
@@ -104,7 +104,7 @@ function CatalogScreen() {
             <ThemeToggle />
             <Link
               to="/cart"
-              className={`rounded-full bg-primary px-7 py-4 text-h1 font-semibold text-white shadow-lg transition hover:scale-105 active:scale-95 ${
+              className={`rounded-full bg-primary px-7 py-4 text-h1 font-semibold text-white shadow-lg transition hover:scale-105 active:scale-95 max-[1100px]:px-5 max-[1100px]:py-3 max-[1100px]:text-h2 ${
                 isCartShaking ? 'cart-shake' : ''
               }`}
             >
@@ -114,7 +114,7 @@ function CatalogScreen() {
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-6 pb-10 pt-6">
+      <main className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-6 pb-10 pt-6 max-[1100px]:gap-4 max-[1100px]:px-4 max-[1100px]:pt-4 max-[1100px]:pb-8">
         <div className="hidden">
           <input
             className="w-full rounded-2xl border border-grayLight bg-surface px-4 py-4 text-h3 text-textPrimary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary placeholder:text-textSecondary"
@@ -126,7 +126,7 @@ function CatalogScreen() {
         </div>
 
         {visibleCategories.length > 0 && (
-          <div className="flex gap-3 overflow-x-auto pb-2">
+          <div className="flex gap-3 overflow-x-auto pb-2 max-[1100px]:gap-2">
             {visibleCategories.map((cat) => (
               <Button
                 key={cat.id}
@@ -154,7 +154,7 @@ function CatalogScreen() {
                 Товары не найдены. Измените поиск или категорию.
               </div>
             ) : (
-              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+              <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 max-[1100px]:gap-4">
                 {filtered.map((product) => (
                   <ProductCard key={product.id} product={product} onAdd={handleAdd} />
                 ))}

@@ -11,13 +11,13 @@ export function ProductCard({ product, onAdd }: ProductCardProps) {
   return (
     <Card
       variant="elevated"
-      className="flex h-full flex-col gap-3 hover:-translate-y-1 hover:shadow-xl transition"
+      className="flex h-full flex-col gap-3 transition hover:-translate-y-1 hover:shadow-xl max-[1100px]:gap-2"
     >
       <div className="flex flex-col gap-1">
-        <div className="text-h1 font-bold leading-tight">{product.name_ru}</div>
-        <div className="text-h3 text-textSecondary">{product.name_zh}</div>
+        <div className="text-h1 font-bold leading-tight max-[1100px]:text-h2">{product.name_ru}</div>
+        <div className="text-h3 text-textSecondary max-[1100px]:text-button">{product.name_zh}</div>
         {product.description_ru && (
-          <div className="text-button text-textSecondary line-clamp-2">{product.description_ru}</div>
+          <div className="text-button text-textSecondary line-clamp-2 max-[1100px]:text-small">{product.description_ru}</div>
         )}
       </div>
 
@@ -33,8 +33,8 @@ export function ProductCard({ product, onAdd }: ProductCardProps) {
       </div>
 
       <div className="mt-auto flex items-center justify-between">
-        <div className="text-h1 font-bold text-textPrimary">{Number(product.price).toFixed(0)} ₽</div>
-        <Button size="small" onClick={() => onAdd(product)}>
+        <div className="text-h1 font-bold text-textPrimary max-[1100px]:text-h2">{Number(product.price).toFixed(0)} ₽</div>
+        <Button size="small" className="max-[1100px]:px-5 max-[1100px]:text-button" onClick={() => onAdd(product)}>
           Добавить
         </Button>
       </div>

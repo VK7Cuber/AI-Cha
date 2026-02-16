@@ -55,10 +55,10 @@ function RatingScreen() {
       </div>
 
       <header className="sticky top-0 z-20 bg-surface/85 backdrop-blur-md shadow-md">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-6 py-4">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-6 py-4 max-[1100px]:px-4 max-[1100px]:py-3">
           <div className="flex items-center gap-3">
-            <img src={logo} alt="AI Cha" className="h-10 w-auto object-contain" />
-            <div className="text-h2 font-bold text-primary">Оценка сервиса</div>
+            <img src={logo} alt="AI Cha" className="h-10 w-auto object-contain max-[1100px]:h-8" />
+            <div className="text-h2 font-bold text-primary max-[1100px]:text-h3">Оценка сервиса</div>
           </div>
           <div className="flex items-center gap-3">
             <ThemeToggle />
@@ -66,11 +66,11 @@ function RatingScreen() {
         </div>
       </header>
 
-      <main className="relative z-10 mx-auto flex w-full max-w-5xl flex-1 flex-col items-center gap-6 px-6 pb-14 pt-10 text-center">
-        <div className="text-h1 font-bold text-primary">{label}</div>
-        <div className="text-h3 text-textSecondary">您如何评价AI Cha的订购流程?</div>
+      <main className="relative z-10 mx-auto flex w-full max-w-5xl flex-1 flex-col items-center gap-6 px-6 pb-14 pt-10 text-center max-[1100px]:gap-4 max-[1100px]:px-4 max-[1100px]:pt-6 max-[1100px]:pb-10">
+        <div className="text-h1 font-bold text-primary max-[1100px]:text-h2">{label}</div>
+        <div className="text-h3 text-textSecondary max-[1100px]:text-button">您如何评价AI Cha的订购流程?</div>
 
-        <div className="flex flex-wrap items-center justify-center gap-4 rounded-3xl bg-surface/80 px-6 py-6 shadow-lg backdrop-blur">
+        <div className="flex flex-wrap items-center justify-center gap-4 rounded-3xl bg-surface/80 px-6 py-6 shadow-lg backdrop-blur max-[1100px]:gap-3 max-[1100px]:px-4 max-[1100px]:py-4">
           {stars.map((star) => {
             const active = selected ? star <= selected : hover ? star <= hover : false;
             return (
@@ -80,7 +80,7 @@ function RatingScreen() {
                 onMouseEnter={() => setHover(star)}
                 onMouseLeave={() => setHover(null)}
                 onClick={() => handleRate(star)}
-                className={`h-16 w-16 rounded-full text-h2 font-bold shadow-lg transition hover:scale-110 active:scale-95 ${
+                className={`h-16 w-16 rounded-full text-h2 font-bold shadow-lg transition hover:scale-110 active:scale-95 max-[1100px]:h-12 max-[1100px]:w-12 max-[1100px]:text-h3 ${
                   active
                     ? 'bg-gradient-to-br from-primary via-primaryHover to-gold text-white'
                     : 'bg-surfaceElevated text-textPrimary ring-1 ring-grayLight'
@@ -93,7 +93,7 @@ function RatingScreen() {
           })}
         </div>
 
-        <div className="flex items-center justify-center gap-3 rounded-3xl bg-surface/75 px-6 py-4 text-button text-textSecondary shadow-lg backdrop-blur">
+        <div className="flex items-center justify-center gap-3 rounded-3xl bg-surface/75 px-6 py-4 text-button text-textSecondary shadow-lg backdrop-blur max-[1100px]:px-4 max-[1100px]:py-3 max-[1100px]:text-small">
           <span className="text-textPrimary font-semibold">Совет:</span>
           <span>Высокая оценка ускорит повторную подачу заказов и улучшит сервис</span>
         </div>
@@ -101,13 +101,13 @@ function RatingScreen() {
         <button
           type="button"
           onClick={() => navigate('/')}
-          className="mt-2 text-h2 font-semibold text-textSecondary/70 transition hover:scale-105 active:scale-95"
+          className="mt-2 text-h2 font-semibold text-textSecondary/70 transition hover:scale-105 active:scale-95 max-[1100px]:text-h3"
         >
           Пропустить
         </button>
 
-        {error && <div className="text-h3 text-primary">Ошибка: {error}</div>}
-        {sending && <div className="text-button text-textSecondary">Отправляем...</div>}
+        {error && <div className="text-h3 text-primary max-[1100px]:text-button">Ошибка: {error}</div>}
+        {sending && <div className="text-button text-textSecondary max-[1100px]:text-small">Отправляем...</div>}
       </main>
     </div>
   );

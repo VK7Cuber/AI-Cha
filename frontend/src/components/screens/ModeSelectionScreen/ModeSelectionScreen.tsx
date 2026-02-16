@@ -46,22 +46,22 @@ function ModeSelectionScreen() {
         <ThemeToggle />
       </div>
 
-      <div className="z-10 flex max-w-4xl flex-col items-center gap-8">
-        <div className="relative flex flex-col items-center gap-5 px-6 text-textSecondary">
-          <div className="relative flex h-80 w-80 items-center justify-center rounded-full bg-primary/12 shadow-inner">
-            <Lottie animationData={animaBot} loop autoplay className="h-80 w-80" />
+      <div className="z-10 flex max-w-4xl flex-col items-center gap-8 max-[1100px]:gap-6">
+        <div className="relative flex flex-col items-center gap-5 px-6 text-textSecondary max-[1100px]:gap-4">
+          <div className="relative flex h-80 w-80 items-center justify-center rounded-full bg-primary/12 shadow-inner max-[1100px]:h-64 max-[1100px]:w-64">
+            <Lottie animationData={animaBot} loop autoplay className="h-80 w-80 max-[1100px]:h-64 max-[1100px]:w-64" />
           </div>
-          <div className="relative text-h2 font-semibold text-textPrimary">AI или обычный заказ?</div>
-          <div className="relative max-w-2xl text-h3 text-textSecondary/80">
+          <div className="relative text-h2 font-semibold text-textPrimary max-[1100px]:text-h3">AI или обычный заказ?</div>
+          <div className="relative max-w-2xl text-h3 text-textSecondary/80 max-[1100px]:text-button">
             ИИ может придумать для вас подходящий напиток. Попробуем?
           </div>
         </div>
 
-        <div className="flex w-full max-w-3xl flex-col gap-4">
-          <Button size="large" className="w-full py-5 text-h2" onClick={onAiSoon}>
+        <div className="flex w-full max-w-3xl flex-col gap-4 max-[1100px]:gap-3">
+          <Button size="large" className="w-full py-5 text-h2 max-[1100px]:py-4 max-[1100px]:text-h3" onClick={onAiSoon}>
             Подобрать товар
           </Button>
-          <Button size="large" variant="secondary" className="w-full py-5 text-h2" onClick={onManual}>
+          <Button size="large" variant="secondary" className="w-full py-5 text-h2 max-[1100px]:py-4 max-[1100px]:text-h3" onClick={onManual}>
             Обычный заказ
           </Button>
         </div>

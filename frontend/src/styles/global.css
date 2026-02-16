@@ -43,6 +43,12 @@
   transition: background-color 0.35s ease, color 0.35s ease, border-color 0.35s ease;
 }
 
+@media (max-width: 1100px), (max-height: 700px) {
+  :root {
+    font-size: 14px;
+  }
+}
+
 .dark {
   /* Темная тема - темный фон с голубыми акцентами как контрастные цвета */
   /* Основной цвет - голубой как контрастный акцент (вместо красного) */

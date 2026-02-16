@@ -49,17 +49,17 @@ function PaymentScreen() {
       </div>
 
       <header className="sticky top-0 z-20 bg-surface/85 backdrop-blur-md shadow-md">
-        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-6 py-4">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-6 py-4 max-[1100px]:px-4 max-[1100px]:py-3">
           <div className="flex items-center gap-3">
-            <img src={logo} alt="AI Cha" className="h-10 w-auto object-contain" />
-            <div className="text-h2 font-bold text-primary">Оплата заказа</div>
+            <img src={logo} alt="AI Cha" className="h-10 w-auto object-contain max-[1100px]:h-8" />
+            <div className="text-h2 font-bold text-primary max-[1100px]:text-h3">Оплата заказа</div>
           </div>
           <div className="flex items-center gap-3">
             <ThemeToggle />
             <button
               type="button"
               onClick={() => navigate(-1)}
-              className="rounded-full bg-surfaceElevated/80 px-5 py-3 text-button font-semibold text-textPrimary shadow-inner transition hover:scale-105 active:scale-95"
+              className="rounded-full bg-surfaceElevated/80 px-5 py-3 text-button font-semibold text-textPrimary shadow-inner transition hover:scale-105 active:scale-95 max-[1100px]:px-4 max-[1100px]:py-2 max-[1100px]:text-small"
             >
               Назад
             </button>
@@ -67,20 +67,20 @@ function PaymentScreen() {
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 pb-16 pt-6">
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-6 pb-16 pt-6 max-[1100px]:gap-4 max-[1100px]:px-4 max-[1100px]:pt-4 max-[1100px]:pb-12">
         {items.length === 0 ? (
           <Card variant="elevated" className="text-textSecondary">
             Корзина пуста. Добавьте товары, чтобы оплатить.
           </Card>
         ) : (
           <>
-            <Card variant="elevated" className="space-y-2 bg-surface/85 shadow-lg backdrop-blur">
-              <div className="text-h3 font-semibold text-textPrimary">Сумма: {totalAmount.toFixed(0)} ₽</div>
-              <div className="text-textSecondary">После оплаты вы перейдёте к оценке сервиса</div>
-              {error && <div className="text-button text-primary">Ошибка: {error}</div>}
+            <Card variant="elevated" className="space-y-2 bg-surface/85 shadow-lg backdrop-blur max-[1100px]:space-y-1">
+              <div className="text-h3 font-semibold text-textPrimary max-[1100px]:text-button">Сумма: {totalAmount.toFixed(0)} ₽</div>
+              <div className="text-textSecondary max-[1100px]:text-small">После оплаты вы перейдёте к оценке сервиса</div>
+              {error && <div className="text-button text-primary max-[1100px]:text-small">Ошибка: {error}</div>}
             </Card>
 
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3 max-[1100px]:gap-3">
               {[
                 { label: 'Банковская карта', icon: '💳' },
                 { label: 'AI Cha карта', icon: '🪪' },
@@ -91,10 +91,10 @@ function PaymentScreen() {
                   type="button"
                   onClick={handlePay}
                   disabled={loading}
-                  className="flex h-full flex-col items-start justify-center rounded-3xl bg-surface/90 px-6 py-6 text-left text-h3 font-semibold text-textPrimary shadow-lg ring-1 ring-grayLight transition hover:-translate-y-1 hover:shadow-xl active:scale-98 disabled:opacity-60"
+                  className="flex h-full flex-col items-start justify-center rounded-3xl bg-surface/90 px-6 py-6 text-left text-h3 font-semibold text-textPrimary shadow-lg ring-1 ring-grayLight transition hover:-translate-y-1 hover:shadow-xl active:scale-98 disabled:opacity-60 max-[1100px]:px-4 max-[1100px]:py-4 max-[1100px]:text-button"
                 >
-                  <span className="text-4xl">{method.icon}</span>
-                  <span className="mt-2">{loading ? 'Обрабатываем...' : method.label}</span>
+                  <span className="text-4xl max-[1100px]:text-3xl">{method.icon}</span>
+                  <span className="mt-2 max-[1100px]:mt-1">{loading ? 'Обрабатываем...' : method.label}</span>
                 </button>
               ))}
             </div>

@@ -55,18 +55,25 @@ function WelcomeScreen() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_25%,var(--glow-1),transparent_32%),radial-gradient(circle_at_75%_75%,var(--glow-2),transparent_28%)]" />
       </div>
 
-      <div className="z-10 flex max-w-3xl flex-col items-center gap-6 px-6">
-        <div className="flex flex-col items-center gap-4">
-          <img src={logo} alt="AI Cha logo" className="max-h-96 w-full max-w-3xl animate-fadeIn drop-shadow-xl object-contain" />
+      <div className="z-10 flex max-w-3xl flex-col items-center gap-6 px-6 max-[1100px]:gap-4 max-[1100px]:px-4">
+        <div className="flex flex-col items-center gap-4 max-[1100px]:gap-3">
+          <img
+            src={logo}
+            alt="AI Cha logo"
+            className="max-h-96 w-full max-w-3xl animate-fadeIn drop-shadow-xl object-contain max-[1100px]:max-h-72"
+          />
         </div>
 
-        <div className="space-y-2 text-h2 font-semibold animate-fadeIn" style={{ animationDelay: '0.1s' }}>
+        <div
+          className="space-y-2 text-h2 font-semibold animate-fadeIn max-[1100px]:space-y-1 max-[1100px]:text-h3"
+          style={{ animationDelay: '0.1s' }}
+        >
           <div>Добро пожаловать в кафе AI Cha!</div>
-          <div className="text-h3 text-textSecondary">欢迎来到爱茶!</div>
+          <div className="text-h3 text-textSecondary max-[1100px]:text-button">欢迎来到爱茶!</div>
         </div>
       </div>
 
-      <div className="pointer-events-none absolute bottom-8 flex items-center gap-3 text-button text-textSecondary animate-pulseSoft">
+      <div className="pointer-events-none absolute bottom-8 flex items-center gap-3 text-button text-textSecondary animate-pulseSoft max-[1100px]:bottom-6">
         <span className="text-small font-medium text-textSecondary/70">{healthText}</span>
       </div>
     </div>
