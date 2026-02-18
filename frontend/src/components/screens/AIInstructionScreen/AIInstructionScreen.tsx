@@ -6,11 +6,10 @@ import instructionLottie from '../../../Lottie/instruction.json';
 import styles from './AIInstructionScreen.module.css';
 
 const INSTRUCTIONS = [
-  'Говорите естественно, как в обычной беседе — это не опрос.',
-  'Старайтесь говорить чётко и немного медленнее обычного.',
-  'Можно отвечать коротко или подробнее — как вам удобно.',
-  'Если вопрос не услышали, используйте кнопку "Не услышал".',
-  'Диалог займёт около минуты и поможет подобрать напиток под вас.'
+  '- Говорите естественно, как в обычной беседе — это не опрос)',
+  '- Старайтесь говорить чётко и спокойно.',
+  '- Можно отвечать коротко или подробнее — как вам удобно.',
+  '- Диалог займёт около минуты и поможет придумать напиток для вас!'
 ];
 
 export default function AIInstructionScreen() {
@@ -56,19 +55,16 @@ export default function AIInstructionScreen() {
 
   return (
     <div className={styles.page}>
-      <div className={styles.topBar}>
-        <ThemeToggle />
-      </div>
-
       <div className={styles.content}>
-        <div className={styles.animation}>
-          <Lottie animationData={instructionLottie} loop autoplay className={styles.lottie} />
-        </div>
-
         <div className={styles.card}>
+          <div className={styles.centeredAnimation}>
+            <div className={styles.animation}>
+              <Lottie animationData={instructionLottie} loop autoplay className={styles.lottie} />
+            </div>
+          </div>
           <h1 className={styles.title}>Небольшая инструкция</h1>
           <p className={styles.subtitle}>
-            Сейчас мы проведём короткий диалог, чтобы подобрать напиток под ваше настроение и вкусы.
+            Сейчас мы проведём короткий диалог, чтобы придумать напиток под ваше настроение и вкусы!
           </p>
           <ul className={styles.list}>
             {INSTRUCTIONS.map((item) => (

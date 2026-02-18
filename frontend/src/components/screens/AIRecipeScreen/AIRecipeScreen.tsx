@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import Lottie from 'lottie-react';
 import thinkingStateLottie from '../../../Lottie/thinking.json';
 import ThemeToggle from '../../common/ThemeToggle/ThemeToggle';
 import { fetchGeneratedRecipes, generateRecipe, GeneratedRecipe } from '../../../services/aiRecipeService';
+import { useCartStore } from '../../../store/cartStore';
+import { Product } from '../../../types/product';
 import styles from './AIRecipeScreen.module.css';
 
 const FALLBACK_TITLE = 'Ваш напиток готов!';
@@ -30,12 +32,15 @@ function useAutoGenerateFlag() {
 }
 
 export default function AIRecipeScreen() {
+  const navigate = useNavigate();
   const sessionId = useSessionId();
   const autoGenerate = useAutoGenerateFlag();
+  const addItem = useCartStore((state) => state.addItem);
   const [recipe, setRecipe] = useState<GeneratedRecipe | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [loaded, setLoaded] = useState(false);
+  const [addedToCart, setAddedToCart] = useState(false);
 
   const loadExisting = useCallback(async () => {
     if (!sessionId) return;
@@ -79,11 +84,63 @@ export default function AIRecipeScreen() {
   }, [autoGenerate, handleGenerate, loaded, loading, recipe]);
 
   const ingredients = recipe?.ingredients || [];
+  const recipeNameRu = recipe?.name_ru?.trim() || '';
+  const recipeNameZh = recipe?.name_zh?.trim() || '';
+  const showZhName = recipeNameZh && recipeNameZh !== recipeNameRu;
   const infoRow = useMemo(() => {
     const time = recipe?.preparation_time_minutes ? `${recipe.preparation_time_minutes} мин` : '—';
     const temp = recipe?.temperature ? recipe.temperature : '—';
     return `⏱️ ${time} | 🌡️ ${temp}`;
   }, [recipe]);
+
+  const cartProduct = useMemo<Product | null>(() => {
+    if (!recipe) return null;
+    const price = Number(recipe.total_price || 0);
+    const temperature =
+      recipe.temperature === 'hot' || recipe.temperature === 'cold' ? recipe.temperature : 'both';
+    const ingredientsText = ingredients
+      .map((item) => {
+        const name = item.ingredient?.name_ru || item.ingredient_id;
+        return item.amount ? `${name} (${item.amount})` : name;
+      })
+      .join(', ');
+    return {
+      id: `generated-${recipe.id}`,
+      category_id: 'generated',
+      name_ru: recipe.name_ru || 'Авторский напиток',
+      name_zh: recipe.name_zh || recipe.name_ru || '',
+      description_ru: recipe.description_ru || '',
+      description_zh: '',
+      price: Number.isFinite(price) ? price : 0,
+      image_url: undefined,
+      ingredients_ru: ingredientsText || null,
+      ingredients_zh: null,
+      temperature,
+      is_available: true,
+      tags: ['ai-generated']
+    };
+  }, [ingredients, recipe]);
+
+  useEffect(() => {
+    setAddedToCart(false);
+  }, [recipe?.id]);
+
+  const handleAddToCart = () => {
+    if (!cartProduct) {
+      setError('Рецепт ещё не готов. Сначала сгенерируйте напиток.');
+      return;
+    }
+    addItem(cartProduct, 1);
+    setAddedToCart(true);
+  };
+
+  const handleStartNewDialog = () => {
+    navigate('/ai-instruction');
+  };
+
+  const handleGoToMenu = () => {
+    navigate('/catalog');
+  };
 
   return (
     <div className={styles.page}>
@@ -105,8 +162,9 @@ export default function AIRecipeScreen() {
 
       <div className={styles.card}>
         <div className={styles.recipeName}>
-          {recipe ? `${recipe.name_ru} / ${recipe.name_zh || recipe.name_ru}` : 'Рецепт еще не создан'}
+          {recipeNameRu || 'Рецепт еще не создан'}
         </div>
+        {showZhName && <div className={styles.recipeNameSecondary}>{recipeNameZh}</div>}
         <div className={styles.description}>{recipe?.description_ru || 'Сформируйте рецепт, чтобы увидеть описание.'}</div>
 
         <div className={styles.reasoning}>
@@ -136,25 +194,23 @@ export default function AIRecipeScreen() {
         <div className={styles.infoRow}>{infoRow}</div>
         <div className={styles.price}>{recipe?.total_price ? `${recipe.total_price} ₽` : '—'}</div>
 
-        <div className={styles.sectionTitle} style={{ marginTop: '1.5rem' }}>
-          Подача
-        </div>
-        <div className={styles.serving}>{recipe?.serving_style ? 'Смотрите детали подачи' : 'Подача появится после генерации.'}</div>
-
         {recipe?.personal_message && (
           <div className={styles.messageCard}>💌 {recipe.personal_message}</div>
         )}
       </div>
 
       <div className={styles.actions}>
-        <button type="button" className={styles.buttonPrimary} disabled={loading} onClick={handleGenerate}>
-          {loading ? 'Генерируем...' : 'Сгенерировать рецепт'}
+        <button type="button" className={styles.buttonPrimary} disabled={loading || !recipe} onClick={handleAddToCart}>
+          {addedToCart ? 'Товар успешно добавлен' : 'Добавить в корзину'}
         </button>
         <button type="button" className={styles.buttonSecondary} disabled={loading} onClick={handleGenerate}>
           Попробовать другой рецепт
         </button>
-        <button type="button" className={styles.buttonLink}>
-          Выбрать из меню
+        <button type="button" className={styles.buttonSecondary} onClick={handleStartNewDialog}>
+          Новый диалог
+        </button>
+        <button type="button" className={styles.buttonLink} onClick={handleGoToMenu}>
+          Перейти в меню
         </button>
       </div>
     </div>

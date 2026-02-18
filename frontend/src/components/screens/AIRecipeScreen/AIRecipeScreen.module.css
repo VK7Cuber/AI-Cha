@@ -38,6 +38,12 @@
   color: var(--color-primary);
 }
 
+.recipeNameSecondary {
+  margin-top: 0.25rem;
+  font-size: 1.5rem;
+  color: var(--color-text-secondary);
+}
+
 .description {
   font-size: 1.25rem;
   margin-top: 0.5rem;

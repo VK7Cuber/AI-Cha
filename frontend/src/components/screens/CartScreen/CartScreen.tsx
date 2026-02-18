@@ -113,9 +113,9 @@ function CartScreen() {
         )}
       </main>
 
-      <div className="fixed bottom-5 left-1/2 z-30 w-[min(90%,720px)] -translate-x-1/2 rounded-3xl bg-surface/90 px-5 py-4 shadow-2xl backdrop-blur max-[1100px]:bottom-4 max-[1100px]:px-4 max-[1100px]:py-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="flex flex-col gap-2 rounded-2xl border border-accent/70 bg-surfaceElevated/70 px-4 py-3 text-textPrimary shadow-sm max-[1100px]:px-3 max-[1100px]:py-2">
+      <div className="fixed bottom-0 left-0 z-30 w-full bg-surface/85 px-8 py-4 shadow-2xl backdrop-blur max-[1100px]:px-4 max-[1100px]:py-3">
+        <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4">
+          <div className="flex flex-row items-center gap-6 rounded-2xl border border-accent/70 bg-surfaceElevated/70 px-4 py-3 text-textPrimary shadow-sm max-[1100px]:px-3 max-[1100px]:py-2">
             <div className="text-h2 font-semibold max-[1100px]:text-h3">
               Кол-во:{' '}
               <span className="font-bold text-primary">
@@ -134,7 +134,7 @@ function CartScreen() {
               variant="secondary"
               onClick={handleClearRequest}
               disabled={items.length === 0}
-              className="!bg-red-500 !text-white hover:!bg-red-600 active:!bg-red-700 max-[1100px]:px-5 max-[1100px]:text-h3"
+              className="min-w-[180px] !bg-red-500 !text-white hover:!bg-red-600 active:!bg-red-700 max-[1100px]:min-w-[150px] max-[1100px]:text-h3"
             >
               Очистить
             </Button>
@@ -142,7 +142,7 @@ function CartScreen() {
               size="large"
               onClick={goToPayment}
               disabled={items.length === 0}
-              className="!bg-green !text-white hover:!bg-greenHover active:!bg-greenActive max-[1100px]:px-6 max-[1100px]:text-h3"
+              className="min-w-[180px] !bg-green !text-white hover:!bg-greenHover active:!bg-greenActive max-[1100px]:min-w-[150px] max-[1100px]:text-h3"
             >
               Оплатить
             </Button>
