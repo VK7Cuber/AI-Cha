@@ -37,7 +37,7 @@ export const sttConfig = {
   },
   vad: {
     enabled: true,
-    silenceMs: 1500,
+    silenceMs: Number(process.env.STT_VAD_SILENCE_MS || 3000),
     minSpeechMs: 500,
     maxSpeechMs: 10000,
     volumeThreshold: 0.02

@@ -3,6 +3,17 @@ import { createClient } from 'redis';
 let client = null;
 let connectPromise = null;
 
+function withTimeout(promise, timeoutMs) {
+  if (!timeoutMs || timeoutMs <= 0) return promise;
+  let timeoutId = null;
+  const timeoutPromise = new Promise((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error('Redis connect timeout')), timeoutMs);
+  });
+  return Promise.race([promise, timeoutPromise]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId);
+  });
+}
+
 export async function getRedisClient() {
   if (client?.isOpen) return client;
 
@@ -21,6 +32,18 @@ export async function getRedisClient() {
     });
   }
 
-  await connectPromise;
-  return client;
+  const timeoutMs = Number(process.env.REDIS_CONNECT_TIMEOUT_MS || 1000);
+  try {
+    await withTimeout(connectPromise, timeoutMs);
+    return client;
+  } catch (error) {
+    connectPromise = null;
+    try {
+      await client.disconnect();
+    } catch {
+      // ignore disconnect errors when redis is unavailable
+    }
+    client = null;
+    throw error;
+  }
 }

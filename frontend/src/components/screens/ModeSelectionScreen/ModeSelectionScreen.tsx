@@ -24,7 +24,7 @@ function ModeSelectionScreen() {
 
   const onAiSoon = () => {
     setMode('ai');
-    setTimeout(() => navigate('/catalog'), 1200);
+    setTimeout(() => navigate('/ai-instruction'), 1200);
   };
 
   const onManual = () => {

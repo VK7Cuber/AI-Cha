@@ -13,6 +13,7 @@ let wssPublic = null;
 const AUDIO_PATH_PREFIX = '/ws/audio';
 const MAX_AUDIO_BUFFER_BYTES = 1024 * 1024; // 1MB для защиты памяти
 const WS_DEBUG = process.env.WS_DEBUG === 'true';
+const TTS_DEBUG = process.env.TTS_DEBUG === 'true';
 const DEFAULT_AUDIO_PORT = 8081;
 const DEFAULT_PUBLIC_PORT = 8082;
 const DEFAULT_TTS_CHUNK_BYTES = 32 * 1024;
@@ -264,10 +265,6 @@ function setupAudioConnection(socket, { sessionId }) {
     }
   };
 
-  if (streamingEnabled) {
-    initStreamingSession();
-  }
-
   if (streamingEnabled && sessionTimeoutMs > 0) {
     state.streamTimer = setInterval(() => {
       if (!state.sttStream) return;
@@ -444,6 +441,14 @@ function setupAudioConnection(socket, { sessionId }) {
 
         state.ttsProcessing = true;
         sendJson(socket, 'status', { state: 'speaking', sessionId });
+        if (TTS_DEBUG) {
+          console.log('[ws][tts] request', {
+            sessionId,
+            useSsml,
+            textLength: input.trim().length,
+            format: ttsConfig.synthesis.format
+          });
+        }
 
         try {
           const result = await ttsService.synthesizeText(input, {
@@ -468,9 +473,21 @@ function setupAudioConnection(socket, { sessionId }) {
             cacheHit: Boolean(result.cacheHit),
             bytes: audioBuffer.length
           });
+          if (TTS_DEBUG) {
+            console.log('[ws][tts] response', {
+              sessionId,
+              contentType: result.contentType,
+              format: result.format,
+              bytes: audioBuffer.length,
+              cacheHit: Boolean(result.cacheHit)
+            });
+          }
 
           const chunkSize = Number(process.env.TTS_CHUNK_BYTES || DEFAULT_TTS_CHUNK_BYTES);
           const delayMs = Number(process.env.TTS_CHUNK_DELAY_MS || DEFAULT_TTS_CHUNK_DELAY_MS);
+          if (TTS_DEBUG) {
+            console.log('[ws][tts] streaming', { sessionId, chunkSize, delayMs });
+          }
 
           for (let offset = 0; offset < audioBuffer.length; offset += chunkSize) {
             if (socket.readyState !== socket.OPEN) break;
@@ -483,6 +500,12 @@ function setupAudioConnection(socket, { sessionId }) {
 
           sendJson(socket, 'tts_end', { sessionId });
         } catch (error) {
+          if (TTS_DEBUG) {
+            console.error('[ws][tts] error', {
+              sessionId,
+              message: error?.message || error
+            });
+          }
           sendJson(socket, 'tts_error', {
             sessionId,
             message: error?.message || 'TTS error'

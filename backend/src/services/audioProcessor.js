@@ -56,6 +56,17 @@ function normalizeVolume(int16Samples, targetRms = 0.1, maxGain = 10) {
   return output;
 }
 
+function alignPcmBuffer(buffer) {
+  if (!buffer || buffer.length < 2) return buffer;
+  const offsetAligned = buffer.byteOffset % 2 === 0;
+  const evenLength = buffer.length % 2 === 0;
+  if (offsetAligned && evenLength) return buffer;
+  const alignedLength = buffer.length - (buffer.length % 2);
+  const aligned = Buffer.allocUnsafe(alignedLength);
+  buffer.copy(aligned, 0, 0, alignedLength);
+  return aligned;
+}
+
 export class AudioProcessor {
   constructor(options = {}) {
     this.inputFormat = options.inputFormat || sttConfig.input.format;
@@ -75,7 +86,12 @@ export class AudioProcessor {
   }
 
   processPcmChunk(buffer) {
-    let int16Samples = new Int16Array(buffer.buffer, buffer.byteOffset, Math.floor(buffer.length / 2));
+    const alignedBuffer = alignPcmBuffer(buffer);
+    let int16Samples = new Int16Array(
+      alignedBuffer.buffer,
+      alignedBuffer.byteOffset,
+      Math.floor(alignedBuffer.length / 2)
+    );
     int16Samples = downmixToMono(int16Samples, this.inputChannels);
     int16Samples = resampleLinear(int16Samples, this.inputSampleRate, this.targetSampleRate);
     int16Samples = normalizeVolume(int16Samples);

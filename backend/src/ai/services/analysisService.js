@@ -1,4 +1,5 @@
 import { models } from '../../database/models/init.js';
+import { ingredientService } from '../../services/ingredientService.js';
 import { analysisPrompt } from '../prompts/analysisPrompt.js';
 import { aiModelService } from './aiModelService.js';
 
@@ -9,6 +10,15 @@ const FALLBACK_ENABLED = process.env.ANALYSIS_FALLBACK_ENABLED !== 'false';
 function buildDialogText(messages) {
   return messages
     .map((message) => `${message.role === 'user' ? 'Пользователь' : 'Бариста'}: ${message.content}`)
+    .join('\n');
+}
+
+function buildIngredientsText(ingredients, categoriesMap) {
+  return ingredients
+    .map((ingredient) => {
+      const category = categoriesMap.get(ingredient.category_id) || 'unknown';
+      return `- ${ingredient.name_ru} (id: ${ingredient.id}) | category: ${category} | caffeine: ${ingredient.caffeine_level} | vegan: ${ingredient.is_vegan}`;
+    })
     .join('\n');
 }
 
@@ -156,12 +166,21 @@ export const analysisService = {
     }
 
     const dialogText = buildDialogText(messages);
+    const ingredients = await ingredientService.getAll({ is_available: 'true' });
+    const categories = await ingredientService.getCategories();
+    const categoriesMap = new Map(categories.map((cat) => [cat.id, cat.name_ru]));
+    const ingredientsText = buildIngredientsText(ingredients, categoriesMap);
     let analysis = null;
 
     try {
       const response = await aiModelService.chatCompletion({
         systemPrompt: analysisPrompt,
-        messages: [{ role: 'user', content: `Диалог:\n${dialogText}` }]
+        messages: [
+          {
+            role: 'user',
+            content: `Диалог:\n${dialogText}\n\nДоступные ингредиенты:\n${ingredientsText}`
+          }
+        ]
       });
       const parsed = extractJson(response.content);
       analysis = normalizeAnalysis(parsed);

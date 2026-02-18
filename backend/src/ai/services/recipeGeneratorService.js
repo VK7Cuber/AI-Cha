@@ -4,7 +4,7 @@ import { recipeService } from '../../services/recipeService.js';
 import { buildRecipePrompt } from '../prompts/recipePrompt.js';
 import { aiModelService } from './aiModelService.js';
 
-const { DialogMessage, GeneratedRecipe, GeneratedRecipeIngredient, Ingredient } = models;
+const { DialogMessage, GeneratedRecipe, GeneratedRecipeIngredient, Ingredient, RecipeGenerationLog } = models;
 
 const PRICE_MULTIPLIER = Number(process.env.RECIPE_PRICE_MULTIPLIER || 2.7);
 
@@ -76,13 +76,22 @@ function computePrice(ingredientsById, recipeIngredients) {
   return Math.round(price / 10) * 10;
 }
 
+function truncateText(text, maxLength = 4000) {
+  if (!text) return '';
+  return text.length > maxLength ? `${text.slice(0, maxLength)}...` : text;
+}
+
 export const recipeGeneratorService = {
   async generateForSession({ sessionId, userProfile }) {
     const messages = await DialogMessage.getForSession(sessionId);
     if (!messages || messages.length === 0) {
       throw new Error('Диалог пуст');
     }
+    if (!userProfile?.id) {
+      throw new Error('Не удалось получить профиль пользователя');
+    }
 
+    const generationStartedAt = Date.now();
     const ingredients = await ingredientService.getAll({ is_available: 'true' });
     const categories = await ingredientService.getCategories();
     const categoriesMap = new Map(categories.map((cat) => [cat.id, cat.name_ru]));
@@ -138,6 +147,8 @@ export const recipeGeneratorService = {
       name_zh: recipe.name_zh || recipe.name_ru,
       description_ru: recipe.description_ru,
       reasoning_ru: recipe.reasoning_ru,
+      personal_message: recipe.personal_message || null,
+      serving_style: recipe.serving_style || null,
       preparation_steps: recipe.preparation_steps,
       temperature: recipe.temperature,
       preparation_time_minutes: recipe.preparation_time_minutes,
@@ -155,6 +166,12 @@ export const recipeGeneratorService = {
         })
       )
     );
+
+    await RecipeGenerationLog.createLog(sessionId, userProfile.id, created.id, {
+      ai_reasoning: recipe.reasoning_ru,
+      prompt_used: truncateText(prompt),
+      generation_time_ms: Date.now() - generationStartedAt
+    });
 
     return created;
   },

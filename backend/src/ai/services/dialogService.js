@@ -1,5 +1,6 @@
 import { models } from '../../database/models/init.js';
 import { systemPrompt } from '../prompts/systemPrompt.js';
+import { ingredientService } from '../../services/ingredientService.js';
 import { questionTemplates } from '../prompts/questionTemplates.js';
 import { aiModelService } from './aiModelService.js';
 
@@ -25,25 +26,51 @@ function pickTemplate(category) {
   return options[index];
 }
 
+function buildIngredientsText(ingredients, categoriesMap) {
+  return ingredients
+    .map((ingredient) => {
+      const category = categoriesMap.get(ingredient.category_id) || 'unknown';
+      return `- ${ingredient.name_ru} | category: ${category}`;
+    })
+    .join('\n');
+}
+
+async function getIngredientsContext() {
+  try {
+    const ingredients = await ingredientService.getAll({ is_available: 'true' });
+    const categories = await ingredientService.getCategories();
+    const categoriesMap = new Map(categories.map((cat) => [cat.id, cat.name_ru]));
+    const ingredientsText = buildIngredientsText(ingredients, categoriesMap);
+    return ingredientsText;
+  } catch {
+    return '';
+  }
+}
+
+function buildSystemPromptWithIngredients(ingredientsText) {
+  if (!ingredientsText) return systemPrompt;
+  return `${systemPrompt}\n\nДоступные ингредиенты кафе:\n${ingredientsText}\n\nВажно: вопросы должны опираться на доступные ингредиенты и их категории. Избегай ингредиентов и вкусов, которых нет в списке.`;
+}
+
 function normalizeAssistantText(text) {
   return String(text || '').replace(/\s+/g, ' ').trim();
 }
 
-async function generateGreetingQuestion() {
+async function generateGreetingQuestion(prompt) {
   const instruction =
     'Сформулируй короткий приветственный вопрос для начала диалога. ' +
     'Один вопрос, 1–2 предложения, до 20–30 слов, без перечисления нескольких вопросов. ' +
     'Вопрос должен помочь понять вкусовые предпочтения или настроение клиента.';
   const response = await aiModelService.chatCompletion({
-    systemPrompt,
+    systemPrompt: prompt,
     messages: [{ role: 'user', content: instruction }]
   });
   return normalizeAssistantText(response.content);
 }
 
-function buildPromptWithHint(nextQuestion) {
-  if (!nextQuestion) return systemPrompt;
-  return `${systemPrompt}\n\nСледующий вопрос, который нужно задать (можно перефразировать, но смысл сохранить): ${nextQuestion}`;
+function buildPromptWithHint(prompt, nextQuestion) {
+  if (!nextQuestion) return prompt;
+  return `${prompt}\n\nСледующий вопрос, который нужно задать (можно перефразировать, но смысл сохранить): ${nextQuestion}`;
 }
 
 function mapMessages(messages) {
@@ -72,8 +99,10 @@ export const dialogService = {
     });
 
     let firstQuestion = '';
+    const ingredientsText = await getIngredientsContext();
+    const prompt = buildSystemPromptWithIngredients(ingredientsText);
     try {
-      firstQuestion = await generateGreetingQuestion();
+      firstQuestion = await generateGreetingQuestion(prompt);
     } catch {
       firstQuestion = '';
     }
@@ -133,8 +162,10 @@ export const dialogService = {
     let assistantMessage = '';
 
     try {
+      const ingredientsText = await getIngredientsContext();
+      const prompt = buildSystemPromptWithIngredients(ingredientsText);
       const aiResponse = await aiModelService.chatCompletion({
-        systemPrompt: buildPromptWithHint(nextTemplate),
+        systemPrompt: buildPromptWithHint(prompt, nextTemplate),
         messages: mapMessages(history)
       });
       assistantMessage = aiResponse.content?.trim();

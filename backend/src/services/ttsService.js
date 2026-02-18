@@ -5,6 +5,7 @@ import { ttsConfig } from '../config/ttsConfig.js';
 import { ttsCacheManager } from './cacheManager.js';
 
 let httpsDispatcher = null;
+const TTS_DEBUG = process.env.TTS_DEBUG === 'true';
 
 function resolveCaPath(rawPath) {
   if (!rawPath) return null;
@@ -122,6 +123,17 @@ async function synthesizeViaYandex(text, options = {}) {
   }
 
   const { params, meta } = buildSynthesisParams(trimmed, options);
+  const startedAt = Date.now();
+  if (TTS_DEBUG) {
+    console.log('[tts] synth start', {
+      textLength: trimmed.length,
+      language: meta.language,
+      voice: meta.voice,
+      speed: meta.speed,
+      emotion: meta.emotion,
+      format: meta.format
+    });
+  }
   const headers = {
     ...getAuthHeader(),
     'Content-Type': 'application/x-www-form-urlencoded'
@@ -133,6 +145,9 @@ async function synthesizeViaYandex(text, options = {}) {
 
   for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
     try {
+      if (TTS_DEBUG) {
+        console.log('[tts] request', { attempt: attempt + 1, maxRetries: maxRetries + 1 });
+      }
       const response = await fetchWithTimeout(
         ttsConfig.yandex.apiUrl,
         {
@@ -145,6 +160,12 @@ async function synthesizeViaYandex(text, options = {}) {
 
       if (!response.ok) {
         const errorText = await parseErrorResponse(response);
+        if (TTS_DEBUG) {
+          console.warn('[tts] response error', {
+            status: response.status,
+            elapsedMs: Date.now() - startedAt
+          });
+        }
         if (response.status >= 500 && attempt < maxRetries) {
           await new Promise((resolve) => setTimeout(resolve, backoffMs * (attempt + 1)));
           continue;
@@ -154,6 +175,14 @@ async function synthesizeViaYandex(text, options = {}) {
 
       const arrayBuffer = await response.arrayBuffer();
       const contentType = resolveContentType(meta.format, response.headers.get('content-type'));
+      if (TTS_DEBUG) {
+        console.log('[tts] response ok', {
+          status: response.status,
+          bytes: arrayBuffer.byteLength,
+          contentType,
+          elapsedMs: Date.now() - startedAt
+        });
+      }
       return {
         audioBuffer: Buffer.from(arrayBuffer),
         contentType,
@@ -161,6 +190,13 @@ async function synthesizeViaYandex(text, options = {}) {
       };
     } catch (error) {
       const isAbort = error?.name === 'AbortError';
+      if (TTS_DEBUG) {
+        console.warn('[tts] request failed', {
+          message: error?.message || error,
+          isAbort,
+          elapsedMs: Date.now() - startedAt
+        });
+      }
       if ((isAbort || error?.status >= 500) && attempt < maxRetries) {
         await new Promise((resolve) => setTimeout(resolve, backoffMs * (attempt + 1)));
         continue;
