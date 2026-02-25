@@ -319,7 +319,14 @@ export default function AIDialogScreen() {
 
   const { start, stop, isRecording, error: micError } = useAudioRecorder({
     onChunk: sendAudioChunk,
-    onLevel: setAudioLevel
+    onLevel: setAudioLevel,
+    noiseGate: {
+      enabled: true,
+      minRms: 0.004,
+      ratio: 2.8,
+      hangoverMs: 220,
+      floorSmoothing: 0.05
+    }
   });
 
   const startSession = useCallback(async () => {

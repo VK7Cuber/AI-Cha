@@ -40,6 +40,6 @@ export const sttConfig = {
     silenceMs: Number(process.env.STT_VAD_SILENCE_MS || 3000),
     minSpeechMs: 500,
     maxSpeechMs: 10000,
-    volumeThreshold: 0.02
+    volumeThreshold: Number(process.env.STT_VAD_VOLUME_THRESHOLD || 0.02)
   }
 };

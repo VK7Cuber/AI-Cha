@@ -21,9 +21,21 @@ function PaymentScreen() {
     setLoading(true);
     setError(null);
 
+    const payloadItems = items.map((i) => {
+      const rawId = i.product.id;
+      if (rawId.startsWith('generated-')) {
+        return {
+          item_type: 'generated_recipe',
+          generated_recipe_id: rawId.replace('generated-', ''),
+          quantity: i.quantity
+        };
+      }
+      return { product_id: rawId, quantity: i.quantity };
+    });
+
     const payload = {
       terminal_id: 'terminal-1',
-      items: items.map((i) => ({ product_id: i.product.id, quantity: i.quantity }))
+      items: payloadItems
     };
 
     createOrder(payload)

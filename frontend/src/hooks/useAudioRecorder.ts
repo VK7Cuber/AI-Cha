@@ -5,6 +5,13 @@ interface AudioRecorderOptions {
   onLevel?: (level: number) => void;
   targetSampleRate?: number;
   bufferSize?: number;
+  noiseGate?: {
+    enabled?: boolean;
+    minRms?: number;
+    ratio?: number;
+    hangoverMs?: number;
+    floorSmoothing?: number;
+  };
 }
 
 function downsampleBuffer(buffer: Float32Array, inputRate: number, targetRate: number) {
@@ -41,7 +48,7 @@ function computeRms(buffer: Float32Array) {
 }
 
 export function useAudioRecorder(options: AudioRecorderOptions) {
-  const { onChunk, onLevel, targetSampleRate = 16000, bufferSize = 4096 } = options;
+  const { onChunk, onLevel, targetSampleRate = 16000, bufferSize = 4096, noiseGate } = options;
   const [isRecording, setIsRecording] = useState(false);
   const [error, setError] = useState('');
 
@@ -50,6 +57,7 @@ export function useAudioRecorder(options: AudioRecorderOptions) {
   const processorRef = useRef<ScriptProcessorNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const recordingRef = useRef(false);
+  const noiseStateRef = useRef({ floor: 0.004, lastSpeechAt: 0 });
 
   const stop = useCallback(() => {
     setIsRecording(false);
@@ -76,7 +84,19 @@ export function useAudioRecorder(options: AudioRecorderOptions) {
         setError('Браузер не поддерживает доступ к микрофону');
         return;
       }
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      let stream: MediaStream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+            channelCount: 1
+          }
+        });
+      } catch {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      }
       streamRef.current = stream;
       const audioContext = new AudioContext();
       audioContextRef.current = audioContext;
@@ -94,6 +114,31 @@ export function useAudioRecorder(options: AudioRecorderOptions) {
         const input = event.inputBuffer.getChannelData(0);
         const downsampled = downsampleBuffer(input, audioContext.sampleRate, targetSampleRate);
         const rms = computeRms(downsampled);
+        const gateEnabled = noiseGate && noiseGate.enabled !== false;
+        if (gateEnabled) {
+          const now = performance.now();
+          const minRms = Math.max(0.0001, noiseGate?.minRms ?? 0.004);
+          const ratio = Math.max(1.5, noiseGate?.ratio ?? 2.8);
+          const hangoverMs = Math.max(80, noiseGate?.hangoverMs ?? 220);
+          const smoothing = Math.min(0.2, Math.max(0.005, noiseGate?.floorSmoothing ?? 0.05));
+          const currentFloor = Math.max(minRms, noiseStateRef.current.floor);
+          const threshold = Math.max(minRms, currentFloor * ratio);
+          const isSpeech = rms >= threshold;
+          if (isSpeech) {
+            noiseStateRef.current.lastSpeechAt = now;
+          } else {
+            noiseStateRef.current.floor = Math.max(
+              minRms,
+              currentFloor * (1 - smoothing) + rms * smoothing
+            );
+          }
+          const withinHangover = now - noiseStateRef.current.lastSpeechAt <= hangoverMs;
+          if (!isSpeech && !withinHangover) {
+            for (let i = 0; i < downsampled.length; i += 1) {
+              downsampled[i] = 0;
+            }
+          }
+        }
         if (onLevel) onLevel(rms);
         const pcm16 = floatTo16BitPCM(downsampled);
         onChunk(pcm16.buffer);
@@ -107,7 +152,7 @@ export function useAudioRecorder(options: AudioRecorderOptions) {
       setError(err instanceof Error ? err.message : 'Ошибка доступа к микрофону');
       stop();
     }
-  }, [bufferSize, isRecording, onChunk, onLevel, stop, targetSampleRate]);
+  }, [bufferSize, isRecording, noiseGate, onChunk, onLevel, stop, targetSampleRate]);
 
   useEffect(() => () => stop(), [stop]);
 
