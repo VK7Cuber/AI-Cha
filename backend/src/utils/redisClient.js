@@ -2,6 +2,15 @@ import { createClient } from 'redis';
 
 let client = null;
 let connectPromise = null;
+let lastErrorLogAt = 0;
+
+function logRedisError(error) {
+  const now = Date.now();
+  // Throttle repetitive connection errors when redis is down.
+  if (now - lastErrorLogAt < 10_000) return;
+  lastErrorLogAt = now;
+  console.error('[redis] error', error?.message || error);
+}
 
 function withTimeout(promise, timeoutMs) {
   if (!timeoutMs || timeoutMs <= 0) return promise;
@@ -19,9 +28,16 @@ export async function getRedisClient() {
 
   if (!client) {
     const redisUrl = process.env.REDIS_URL || 'redis://localhost:6379/0';
-    client = createClient({ url: redisUrl });
+    const connectTimeout = Number(process.env.REDIS_CONNECT_TIMEOUT_MS || 1000);
+    client = createClient({
+      url: redisUrl,
+      socket: {
+        connectTimeout,
+        reconnectStrategy: () => false
+      }
+    });
     client.on('error', (error) => {
-      console.error('[redis] error', error?.message || error);
+      logRedisError(error);
     });
   }
 

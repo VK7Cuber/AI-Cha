@@ -43,6 +43,7 @@ export default function AIDialogScreen() {
   const audioContextRef = useRef<AudioContext | null>(null);
   const audioSourceRef = useRef<AudioBufferSourceNode | null>(null);
   const lastTranscriptRef = useRef('');
+  const lastPartialRef = useRef('');
   const ignoreTranscriptRef = useRef(false);
   const ttsInFlightRef = useRef(false);
   const ttsRequestIdRef = useRef(0);
@@ -51,6 +52,15 @@ export default function AIDialogScreen() {
   const pendingTtsRef = useRef('');
   const sendTtsRef = useRef<(text: string) => void>(() => {});
   const pendingAudioRef = useRef<{ id: number; blob: Blob; receivedAt: number } | null>(null);
+  const sttThinkingLockRef = useRef(false);
+  const clientVadRef = useRef({
+    hasSpeech: false,
+    lastVoiceAt: 0,
+    listeningStartedAt: 0,
+    finalizeSent: false,
+    lastLevelAt: 0,
+    speechMs: 0
+  });
 
   const clearTimer = () => {
     if (timeoutRef.current) {
@@ -151,11 +161,17 @@ export default function AIDialogScreen() {
       const run = async () => {
         clearTtsTimer();
         if (!blob || blob.size < 16) {
+          ttsInFlightRef.current = false;
           setError('TTS вернул пустой аудиофайл. Проверьте формат TTS.');
           transitionToListening();
           return;
         }
         if (ttsId !== activeTtsIdRef.current) return;
+        const preferHtmlAudio = /audio\/(mpeg|mp3|ogg|wav)/i.test(blob.type);
+        if (preferHtmlAudio) {
+          playViaHtmlAudio();
+          return;
+        }
 
         const AudioCtx =
           window.AudioContext ||
@@ -249,25 +265,51 @@ export default function AIDialogScreen() {
     (state: string) => {
       if (status === 'completed') return;
       if (audioPlayingRef.current || ttsInFlightRef.current || pendingAudioRef.current) return;
-      if (state === 'listening' || state === 'thinking') {
+      if (state === 'thinking') {
+        sttThinkingLockRef.current = true;
+        setDialogState('thinking');
+        return;
+      }
+      if (state === 'listening') {
+        if (sttThinkingLockRef.current || isSending) return;
         setDialogState(state);
       }
     },
-    [status]
+    [isSending, status]
   );
 
   const handleTranscript = useCallback((text: string) => {
-    if (!text.trim()) return;
     if (ignoreTranscriptRef.current) return;
+    if (!text.trim()) {
+      sttThinkingLockRef.current = false;
+      clientVadRef.current.finalizeSent = false;
+      clientVadRef.current.hasSpeech = false;
+      lastPartialRef.current = '';
+      setDialogState('listening');
+      return;
+    }
     if (text === lastTranscriptRef.current) return;
+    clientVadRef.current.finalizeSent = false;
+    clientVadRef.current.hasSpeech = false;
+    lastPartialRef.current = '';
     lastTranscriptRef.current = text;
     setPendingTranscript(text);
+  }, []);
+
+  const handlePartial = useCallback((text: string) => {
+    const normalized = String(text || '').trim();
+    if (!normalized) return;
+    if (ignoreTranscriptRef.current) return;
+    lastPartialRef.current = normalized;
   }, []);
 
   const handleTtsComplete = useCallback(
     (blob: Blob) => {
       clearTtsTimer();
-      ttsInFlightRef.current = false;
+      // Do NOT reset ttsInFlightRef here. playAudioBlob resets it only when
+      // audio actually starts, preventing a race where the server's
+      // status:'listening' message arrives during the async blob-decode phase
+      // and prematurely starts the microphone while TTS is still being set up.
       if (!audioUnlocked) {
         pendingAudioRef.current = { id: activeTtsIdRef.current, blob, receivedAt: Date.now() };
         setError('Нажмите "Включить звук", чтобы разрешить воспроизведение.');
@@ -280,6 +322,7 @@ export default function AIDialogScreen() {
 
   const { isOpen: wsReady, sendAudioChunk, sendFinalize, sendTts } = useDialogWs(sessionId, {
     onStatus: handleWsStatus,
+    onPartial: handlePartial,
     onTranscript: handleTranscript,
     onTtsStart: () => {
       ttsInFlightRef.current = true;
@@ -297,8 +340,16 @@ export default function AIDialogScreen() {
         'STT stream closed before final result',
         'STT finalize timeout'
       ];
-      if (ignored.some((entry) => normalized.includes(entry))) {
+      const isIgnored = ignored.some((entry) => normalized.includes(entry));
+      if (isIgnored) {
         console.warn('[ws]', normalized);
+        // Recover UI state on transient STT stream errors.
+        sttThinkingLockRef.current = false;
+        clientVadRef.current.finalizeSent = false;
+        clientVadRef.current.hasSpeech = false;
+        if (status !== 'completed' && !audioPlayingRef.current && !ttsInFlightRef.current) {
+          setDialogState('listening');
+        }
         return;
       }
       if (/\btts\b/i.test(normalized)) {
@@ -306,6 +357,9 @@ export default function AIDialogScreen() {
         pendingTtsRef.current = '';
         clearTtsTimer();
       }
+      sttThinkingLockRef.current = false;
+      clientVadRef.current.finalizeSent = false;
+      clientVadRef.current.hasSpeech = false;
       setError(normalized);
       if (status !== 'completed' && !audioPlayingRef.current) {
         setDialogState('listening');
@@ -314,8 +368,79 @@ export default function AIDialogScreen() {
   });
 
   useEffect(() => {
+    if (dialogState !== 'thinking') return;
+    if (isSending || status !== 'in_progress') return;
+    if (audioPlayingRef.current || ttsInFlightRef.current) return;
+
+    const timer = window.setTimeout(() => {
+      // Failsafe: recover from rare stuck thinking state when STT finalize
+      // does not produce transcript/error in time.
+      const fallbackText = lastPartialRef.current.trim();
+      if (fallbackText && fallbackText !== lastTranscriptRef.current && !processingRef.current) {
+        sttThinkingLockRef.current = false;
+        clientVadRef.current.finalizeSent = false;
+        clientVadRef.current.hasSpeech = false;
+        lastTranscriptRef.current = fallbackText;
+        setPendingTranscript(fallbackText);
+        return;
+      }
+      sttThinkingLockRef.current = false;
+      setDialogState('listening');
+    }, 8000);
+
+    return () => window.clearTimeout(timer);
+  }, [dialogState, isSending, status]);
+
+  useEffect(() => {
+    if (dialogState !== 'listening' || status !== 'in_progress') return;
+    clientVadRef.current = {
+      hasSpeech: false,
+      lastVoiceAt: 0,
+      listeningStartedAt: Date.now(),
+      finalizeSent: false,
+      lastLevelAt: Date.now(),
+      speechMs: 0
+    };
+  }, [dialogState, status]);
+
+  useEffect(() => {
+    if (dialogState !== 'listening') return;
+    if (status !== 'in_progress' || isSending || !wsReady) return;
+    if (audioPlayingRef.current || ttsInFlightRef.current) return;
+
+    const now = Date.now();
+    const voiceLevelThreshold = 0.03;
+    const silenceToFinalizeMs = 900;
+    const maxUtteranceMs = 12000;
+    const minSpeechMs = 350;
+    const minListeningBeforeFinalizeMs = 700;
+    const state = clientVadRef.current;
+    const deltaMs = Math.max(0, now - (state.lastLevelAt || now));
+    state.lastLevelAt = now;
+
+    if (audioLevel >= voiceLevelThreshold) {
+      state.hasSpeech = true;
+      state.lastVoiceAt = now;
+      state.speechMs += Math.min(deltaMs, 400);
+      return;
+    }
+
+    if (!state.hasSpeech || state.finalizeSent) return;
+    if (state.speechMs < minSpeechMs) return;
+    const silentForMs = now - state.lastVoiceAt;
+    const sinceListeningMs = now - state.listeningStartedAt;
+    if (sinceListeningMs < minListeningBeforeFinalizeMs) return;
+    if (silentForMs < silenceToFinalizeMs && sinceListeningMs < maxUtteranceMs) return;
+
+    state.finalizeSent = true;
+    sttThinkingLockRef.current = true;
+    setDialogState('thinking');
+    sendFinalize();
+  }, [audioLevel, dialogState, isSending, sendFinalize, status, wsReady]);
+
+  useEffect(() => {
     sendTtsRef.current = sendTts;
-  }, [beginTtsRequest, sendTts]);
+  }, [sendTts]);
 
   const { start, stop, isRecording, error: micError } = useAudioRecorder({
     onChunk: sendAudioChunk,
@@ -331,6 +456,7 @@ export default function AIDialogScreen() {
 
   const startSession = useCallback(async () => {
     setDialogState('thinking');
+    sttThinkingLockRef.current = false;
     setError('');
     clearTtsTimer();
     ttsInFlightRef.current = false;
@@ -373,6 +499,7 @@ export default function AIDialogScreen() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка запуска диалога');
       setDialogState('listening');
+      sttThinkingLockRef.current = false;
     }
   }, [beginTtsRequest, sendTts]);
 
@@ -466,10 +593,12 @@ export default function AIDialogScreen() {
     async (text: string) => {
       if (!sessionId || isSending || status !== 'in_progress') return;
       setIsSending(true);
+      sttThinkingLockRef.current = true;
       setDialogState('thinking');
       setError('');
       try {
         const response = await sendDialogMessage(sessionId, text);
+        sttThinkingLockRef.current = false;
         setAiText(response.message || 'Спасибо! Продолжаем.');
         setAiTextSecondary('谢谢！我们继续。');
         setStatus(response.status === 'completed' ? 'completed' : 'in_progress');
@@ -487,6 +616,7 @@ export default function AIDialogScreen() {
         transitionToListening();
       }
       } catch (err) {
+        sttThinkingLockRef.current = false;
         setError(err instanceof Error ? err.message : 'Ошибка отправки сообщения');
         setDialogState('listening');
       } finally {
@@ -527,6 +657,7 @@ export default function AIDialogScreen() {
   const handleStop = async () => {
     if (!sessionId || isSending) return;
     setIsSending(true);
+    sttThinkingLockRef.current = true;
     setDialogState('thinking');
     try {
       sendFinalize();
@@ -543,6 +674,7 @@ export default function AIDialogScreen() {
         sendTts('Спасибо! Диалог завершён.');
       }
     } catch (err) {
+      sttThinkingLockRef.current = false;
       setError(err instanceof Error ? err.message : 'Ошибка завершения диалога');
       setDialogState('listening');
     } finally {

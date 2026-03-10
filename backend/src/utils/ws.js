@@ -69,6 +69,7 @@ function setupAudioConnection(socket, { sessionId }) {
     sttStream: null,
     audioProcessor: null,
     ttsProcessing: false,
+    awaitingTts: false,
     speechActive: false,
     lowVolumeNotified: false,
     reconnectAttempts: 0,
@@ -77,8 +78,12 @@ function setupAudioConnection(socket, { sessionId }) {
     lastFinalStreamId: null,
     lastFinalAt: null,
     lastFailedStreamId: null,
+    streamFinalizeTimer: null,
     streamTimer: null,
     streamingDisabled: !streamingEnabled,
+    currentStatus: null,
+    debugChunkCount: 0,
+    lastChunkDebugAt: 0,
     metrics: {
       successes: 0,
       errors: 0,
@@ -112,6 +117,19 @@ function setupAudioConnection(socket, { sessionId }) {
     return latencyMs;
   };
 
+  const sendStatus = (nextState, force = false) => {
+    if (!force && state.currentStatus === nextState) return;
+    state.currentStatus = nextState;
+    sendJson(socket, 'status', { state: nextState, sessionId });
+  };
+
+  const clearFinalizeTimer = () => {
+    if (state.streamFinalizeTimer) {
+      clearTimeout(state.streamFinalizeTimer);
+      state.streamFinalizeTimer = null;
+    }
+  };
+
   const handleFinalResult = ({ text, confidence }, source, latencyMs = null, streamId = null) => {
     const computedLatency =
       latencyMs ?? (state.finalizeRequestedAt ? Date.now() - state.finalizeRequestedAt : null);
@@ -119,9 +137,15 @@ function setupAudioConnection(socket, { sessionId }) {
     state.metrics.successes += 1;
     state.finalizeRequestedAt = null;
     state.finalizingStreamId = null;
+    clearFinalizeTimer();
     if (source === 'stream' && Number.isFinite(streamId)) {
       state.lastFinalStreamId = streamId;
       state.lastFinalAt = Date.now();
+      // Invalidate this stream's subsequent callbacks (late eou_update, partial, etc.)
+      // so they cannot set finalizeRequestedAt after we've already cleared it.
+      if (state.streamSeq === streamId) {
+        state.streamSeq = streamId + 1;
+      }
     }
     state.speechActive = false;
     state.lowVolumeNotified = false;
@@ -134,7 +158,14 @@ function setupAudioConnection(socket, { sessionId }) {
       latencyMs: normalizedLatency,
       source
     });
-    sendJson(socket, 'status', { state: 'listening', sessionId });
+    // Only block audio while waiting for TTS when we got actual speech.
+    // For empty transcripts the client goes back to listening immediately,
+    // so we must not leave awaitingTts=true (it would block all future chunks).
+    if (text.trim()) {
+      state.awaitingTts = true;
+    } else {
+      sendStatus('listening', true);
+    }
     if (WS_DEBUG) {
       const successRate = state.metrics.successes + state.metrics.errors
         ? state.metrics.successes / (state.metrics.successes + state.metrics.errors)
@@ -151,12 +182,18 @@ function setupAudioConnection(socket, { sessionId }) {
   const handleStreamFailure = (error, streamId, reason) => {
     if (streamId !== state.streamSeq) return;
     if (state.lastFailedStreamId === streamId) return;
-    if (streamId === state.finalizingStreamId && (reason === 'end' || reason === 'closed')) {
+    clearFinalizeTimer();
+    if (streamId === state.finalizingStreamId) {
+      state.lastFailedStreamId = streamId;
       state.sttStream = null;
       if (state.finalizeRequestedAt) {
+        state.finalizingStreamId = null;
+        if (state.bufferBytes > 0) {
+          void finalizeBufferedAudio('stream_fallback');
+          return;
+        }
         state.metrics.errors += 1;
         state.finalizeRequestedAt = null;
-        state.finalizingStreamId = null;
         sendJson(socket, 'error', {
           sessionId,
           message: 'STT stream closed before final result'
@@ -215,7 +252,10 @@ function setupAudioConnection(socket, { sessionId }) {
       handleFinalResult({ text, confidence }, 'stream', null, streamId);
     }
     if (response.eou_update) {
-      if (!state.finalizeRequestedAt) {
+      // Guard: ignore eou_update from a stream that already delivered its final result.
+      // Without this, a late eou_update would re-set finalizeRequestedAt after
+      // handleFinalResult cleared it, blocking all subsequent audio chunks.
+      if (!state.finalizeRequestedAt && streamId !== state.lastFinalStreamId) {
         state.finalizeRequestedAt = Date.now();
       }
       sendJson(socket, 'eou', { sessionId, timeMs: response.eou_update.time_ms });
@@ -287,7 +327,7 @@ function setupAudioConnection(socket, { sessionId }) {
 
   const finalizeBufferedAudio = async (source) => {
     if (state.processing) {
-      sendJson(socket, 'status', { state: 'thinking', sessionId });
+      sendStatus('thinking');
       return;
     }
     if (!state.finalizeRequestedAt) {
@@ -295,10 +335,24 @@ function setupAudioConnection(socket, { sessionId }) {
     }
 
     if (state.sttStream && !state.sttStream.isClosed?.()) {
-      sendJson(socket, 'status', { state: 'thinking', sessionId });
+      sendStatus('thinking');
       state.finalizingStreamId = state.streamSeq;
       state.sttStream.finalize();
       state.sttStream = null;
+      clearFinalizeTimer();
+      const finalizeTimeoutMs = Number(process.env.STT_FINALIZE_TIMEOUT_MS || 1500);
+      if (Number.isFinite(finalizeTimeoutMs) && finalizeTimeoutMs > 0) {
+        const streamId = state.finalizingStreamId;
+        state.streamFinalizeTimer = setTimeout(() => {
+          if (
+            state.finalizeRequestedAt &&
+            !state.processing &&
+            streamId === state.finalizingStreamId
+          ) {
+            void finalizeBufferedAudio('stream_fallback_timeout');
+          }
+        }, finalizeTimeoutMs);
+      }
       return;
     }
 
@@ -308,7 +362,7 @@ function setupAudioConnection(socket, { sessionId }) {
       return;
     }
     state.processing = true;
-    sendJson(socket, 'status', { state: 'thinking', sessionId });
+    sendStatus('thinking');
     const startedAt = Date.now();
     try {
       const restFormat = sttService.resolveRestFormat(sttConfig.input.format);
@@ -327,7 +381,6 @@ function setupAudioConnection(socket, { sessionId }) {
         sessionId,
         message: error?.message || 'STT error'
       });
-      sendJson(socket, 'status', { state: 'listening', sessionId });
       state.finalizeRequestedAt = null;
     } finally {
       state.processing = false;
@@ -338,10 +391,27 @@ function setupAudioConnection(socket, { sessionId }) {
     try {
       if (isBinary) {
         if (WS_DEBUG) {
-          console.log('[ws] binary chunk', { sessionId, size: data?.length || 0 });
+          state.debugChunkCount += 1;
+          const now = Date.now();
+          if (now - state.lastChunkDebugAt >= 2000) {
+            console.log('[ws] binary chunks', {
+              sessionId,
+              chunks: state.debugChunkCount,
+              lastChunkBytes: data?.length || 0
+            });
+            state.lastChunkDebugAt = now;
+            state.debugChunkCount = 0;
+          }
         }
         let chunk = Buffer.isBuffer(data) ? data : Buffer.from(data);
         state.lastChunkAt = Date.now();
+
+        if (state.processing || state.finalizeRequestedAt || state.ttsProcessing || state.awaitingTts) {
+          if (!state.processing && state.finalizeRequestedAt) {
+            sendStatus('thinking');
+          }
+          return;
+        }
 
         let processed = null;
         if (state.audioProcessor) {
@@ -403,7 +473,6 @@ function setupAudioConnection(socket, { sessionId }) {
           await finalizeBufferedAudio('vad');
         }
 
-        sendJson(socket, 'status', { state: 'listening', sessionId });
         return;
       }
 
@@ -440,7 +509,8 @@ function setupAudioConnection(socket, { sessionId }) {
         }
 
         state.ttsProcessing = true;
-        sendJson(socket, 'status', { state: 'speaking', sessionId });
+        state.awaitingTts = false;
+        sendStatus('speaking');
         if (TTS_DEBUG) {
           console.log('[ws][tts] request', {
             sessionId,
@@ -512,7 +582,9 @@ function setupAudioConnection(socket, { sessionId }) {
           });
         } finally {
           state.ttsProcessing = false;
-          sendJson(socket, 'status', { state: 'listening', sessionId });
+          if (!state.processing && !state.finalizeRequestedAt) {
+            sendStatus('listening');
+          }
         }
         return;
       }
@@ -535,6 +607,7 @@ function setupAudioConnection(socket, { sessionId }) {
     if (state.streamTimer) {
       clearInterval(state.streamTimer);
     }
+    clearFinalizeTimer();
     resetBuffer();
     state.audioProcessor?.reset();
     state.sttStream?.close();
@@ -545,7 +618,7 @@ function setupAudioConnection(socket, { sessionId }) {
   });
 
   sendJson(socket, 'connected', { ok: true, sessionId });
-  sendJson(socket, 'status', { state: 'listening', sessionId });
+  sendStatus('listening', true);
 }
 
 export function initWs(_server) {

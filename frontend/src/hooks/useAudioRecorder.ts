@@ -81,7 +81,11 @@ export function useAudioRecorder(options: AudioRecorderOptions) {
     setError('');
     try {
       if (!navigator?.mediaDevices?.getUserMedia) {
-        setError('Браузер не поддерживает доступ к микрофону');
+        if (!window.isSecureContext) {
+          setError('Доступ к микрофону требует HTTPS или localhost. Откройте приложение через защищённый адрес.');
+        } else {
+          setError('Браузер не поддерживает доступ к микрофону');
+        }
         return;
       }
       let stream: MediaStream;
@@ -149,7 +153,20 @@ export function useAudioRecorder(options: AudioRecorderOptions) {
       setIsRecording(true);
       recordingRef.current = true;
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Ошибка доступа к микрофону');
+      if (err && typeof err === 'object' && 'name' in err) {
+        const name = String((err as { name?: string }).name || '');
+        if (name === 'NotAllowedError') {
+          setError('Доступ к микрофону запрещён. Разрешите микрофон в настройках браузера.');
+        } else if (name === 'NotFoundError') {
+          setError('Микрофон не найден. Проверьте подключение устройства.');
+        } else if (name === 'NotReadableError') {
+          setError('Микрофон занят другим приложением или недоступен.');
+        } else {
+          setError(err instanceof Error ? err.message : 'Ошибка доступа к микрофону');
+        }
+      } else {
+        setError(err instanceof Error ? err.message : 'Ошибка доступа к микрофону');
+      }
       stop();
     }
   }, [bufferSize, isRecording, noiseGate, onChunk, onLevel, stop, targetSampleRate]);

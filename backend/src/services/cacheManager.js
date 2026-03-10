@@ -37,7 +37,7 @@ async function getRedisSafe() {
   try {
     return await getRedisClient();
   } catch (error) {
-    redisUnavailableUntil = Date.now() + 10_000;
+    redisUnavailableUntil = Date.now() + 60_000;
     console.warn('[tts-cache] redis unavailable', error?.message || error);
     return null;
   }
