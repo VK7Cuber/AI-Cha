@@ -13,7 +13,8 @@
     "db:seed": "sequelize-cli db:seed:all",
     "db:seed:undo": "sequelize-cli db:seed:undo:all",
     "menu:load": "node scripts/load-menu.js",
-    "menu:list": "node scripts/list-menu.js"
+    "menu:list": "node scripts/list-menu.js",
+    "demo:generate-audio": "node scripts/generate-demo-audio.js"
   },
   "dependencies": {
     "@fastify/compress": "^7.0.0",

@@ -99,3 +99,19 @@
 .backLink:hover {
   color: var(--color-text-primary);
 }
+
+.demoLink {
+  background: none;
+  border: none;
+  color: rgba(var(--color-text-secondary-rgb, 120, 120, 140), 0.55);
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 0.2rem 0.5rem;
+  opacity: 0.7;
+  transition: opacity 0.2s;
+}
+
+.demoLink:hover {
+  opacity: 1;
+  color: var(--color-text-secondary);
+}

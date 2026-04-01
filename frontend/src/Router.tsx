@@ -9,6 +9,7 @@ import RecommendationsScreen from './components/screens/RecommendationsScreen/Re
 import StaffDashboard from './components/screens/StaffDashboard/StaffDashboard';
 import DisplayScreen from './components/screens/DisplayScreen/DisplayScreen';
 import AIDialogScreen from './components/screens/AIDialogScreen/AIDialogScreen';
+import AIDemoDialogScreen from './components/screens/AIDemoDialogScreen/AIDemoDialogScreen';
 import AIRecipeScreen from './components/screens/AIRecipeScreen/AIRecipeScreen';
 import AIInstructionScreen from './components/screens/AIInstructionScreen/AIInstructionScreen';
 import { PageTransition } from './components/animations/PageTransition/PageTransition';
@@ -30,6 +31,7 @@ const router = createBrowserRouter([
   { path: '/recommendations', element: <PageTransition><WithNavigationTracking><RecommendationsScreen /></WithNavigationTracking></PageTransition> },
   { path: '/ai-instruction', element: <PageTransition><WithNavigationTracking><AIInstructionScreen /></WithNavigationTracking></PageTransition> },
   { path: '/ai-dialog', element: <PageTransition><WithNavigationTracking><AIDialogScreen /></WithNavigationTracking></PageTransition> },
+  { path: '/ai-demo-dialog', element: <PageTransition><WithNavigationTracking><AIDemoDialogScreen /></WithNavigationTracking></PageTransition> },
   { path: '/ai-recipe', element: <PageTransition><WithNavigationTracking><AIRecipeScreen /></WithNavigationTracking></PageTransition> },
   // Staff panel (отдельный вход, не включать в публичный UI)
   { path: '/staff-panel', element: <PageTransition><StaffDashboard /></PageTransition> },

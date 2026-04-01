@@ -53,6 +53,11 @@ export default function AIInstructionScreen() {
     navigate('/mode');
   };
 
+  const handleDemo = () => {
+    unlockAutoplay();
+    navigate('/ai-demo-dialog');
+  };
+
   return (
     <div className={styles.page}>
       <div className={styles.content}>
@@ -77,6 +82,9 @@ export default function AIInstructionScreen() {
             </Button>
             <button type="button" className={styles.backLink} onClick={handleBack}>
               Назад
+            </button>
+            <button type="button" className={styles.demoLink} onClick={handleDemo}>
+              Демонстрация
             </button>
           </div>
         </div>

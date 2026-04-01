@@ -4,6 +4,7 @@ import Lottie from 'lottie-react';
 import thinkingStateLottie from '../../../Lottie/thinking.json';
 import ThemeToggle from '../../common/ThemeToggle/ThemeToggle';
 import { fetchGeneratedRecipes, generateRecipe, GeneratedRecipe } from '../../../services/aiRecipeService';
+import { DEMO_RECIPE } from '../../../data/demoData';
 import { useCartStore } from '../../../store/cartStore';
 import { Product } from '../../../types/product';
 import styles from './AIRecipeScreen.module.css';
@@ -31,10 +32,19 @@ function useAutoGenerateFlag() {
   }, [location.search]);
 }
 
+function useDemoFlag() {
+  const location = useLocation();
+  return useMemo(() => {
+    const params = new URLSearchParams(location.search);
+    return params.get('demo') === '1';
+  }, [location.search]);
+}
+
 export default function AIRecipeScreen() {
   const navigate = useNavigate();
   const sessionId = useSessionId();
   const autoGenerate = useAutoGenerateFlag();
+  const isDemo = useDemoFlag();
   const addItem = useCartStore((state) => state.addItem);
   const [recipe, setRecipe] = useState<GeneratedRecipe | null>(null);
   const [loading, setLoading] = useState(false);
@@ -42,8 +52,20 @@ export default function AIRecipeScreen() {
   const [loaded, setLoaded] = useState(false);
   const [addedToCart, setAddedToCart] = useState(false);
 
+  // In demo mode, skip API calls and show the pre-built recipe after a brief delay
+  useEffect(() => {
+    if (!isDemo) return;
+    setLoading(true);
+    const t = setTimeout(() => {
+      setRecipe(DEMO_RECIPE);
+      setLoaded(true);
+      setLoading(false);
+    }, 1800);
+    return () => clearTimeout(t);
+  }, [isDemo]);
+
   const loadExisting = useCallback(async () => {
-    if (!sessionId) return;
+    if (isDemo || !sessionId) return;
     try {
       const recipes = await fetchGeneratedRecipes(sessionId);
       if (recipes.length) {
@@ -54,9 +76,18 @@ export default function AIRecipeScreen() {
       setError(err instanceof Error ? err.message : 'Ошибка загрузки рецептов');
       setLoaded(true);
     }
-  }, [sessionId]);
+  }, [isDemo, sessionId]);
 
   const handleGenerate = useCallback(async () => {
+    if (isDemo) {
+      // Re-show the demo recipe with a loading effect
+      setLoading(true);
+      setRecipe(null);
+      await new Promise((r) => setTimeout(r, 1200));
+      setRecipe(DEMO_RECIPE);
+      setLoading(false);
+      return;
+    }
     if (!sessionId) {
       setError('Нет sessionId диалога. Сначала пройдите диалог.');
       return;
@@ -71,17 +102,17 @@ export default function AIRecipeScreen() {
     } finally {
       setLoading(false);
     }
-  }, [sessionId]);
+  }, [isDemo, sessionId]);
 
   useEffect(() => {
-    loadExisting();
-  }, [loadExisting]);
+    if (!isDemo) loadExisting();
+  }, [isDemo, loadExisting]);
 
   useEffect(() => {
-    if (autoGenerate && loaded && !recipe && !loading) {
+    if (!isDemo && autoGenerate && loaded && !recipe && !loading) {
       handleGenerate();
     }
-  }, [autoGenerate, handleGenerate, loaded, loading, recipe]);
+  }, [autoGenerate, handleGenerate, isDemo, loaded, loading, recipe]);
 
   const ingredients = recipe?.ingredients || [];
   const recipeNameRu = recipe?.name_ru?.trim() || '';

@@ -1,0 +1,19 @@
+/* Supplements AIDialogScreen.module.css for the demo-specific badge */
+
+.demoBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.2rem 0.75rem;
+  border-radius: 999px;
+  background: rgba(255, 200, 0, 0.15);
+  border: 1px solid rgba(255, 200, 0, 0.4);
+  color: #c8a000;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.demoBadge::before {
+  content: '🎭';
+  font-size: 0.85rem;
+}
